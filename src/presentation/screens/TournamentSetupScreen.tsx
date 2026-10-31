@@ -8,6 +8,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from 'react-native';
 
 import { FootballViewModel } from '../viewmodels/FootballViewModel';
@@ -34,42 +35,28 @@ const ROUND_OPTIONS: {
   teamCount: number;
   matchCount: number;
 }[] = [
-  {
-    value: 'DIECISEISAVOS',
-    label: 'Dieciseisavos',
-    teamCount: 32,
-    matchCount: 16,
-  },
-  {
-    value: 'OCTAVOS',
-    label: 'Octavos',
-    teamCount: 16,
-    matchCount: 8,
-  },
-  {
-    value: 'CUARTOS',
-    label: 'Cuartos',
-    teamCount: 8,
-    matchCount: 4,
-  },
-  {
-    value: 'SEMIFINALES',
-    label: 'Semifinales',
-    teamCount: 4,
-    matchCount: 2,
-  },
-  {
-    value: 'FINAL',
-    label: 'Final',
-    teamCount: 2,
-    matchCount: 1,
-  },
+  { value: 'DIECISEISAVOS', label: 'Dieciseisavos', teamCount: 32, matchCount: 16 },
+  { value: 'OCTAVOS', label: 'Octavos', teamCount: 16, matchCount: 8 },
+  { value: 'CUARTOS', label: 'Cuartos', teamCount: 8, matchCount: 4 },
+  { value: 'SEMIFINALES', label: 'Semifinales', teamCount: 4, matchCount: 2 },
+  { value: 'FINAL', label: 'Final', teamCount: 2, matchCount: 1 },
 ];
 
 export default function TournamentSetupScreen({
   onBack,
   onStartTournament,
 }: TournamentSetupScreenProps) {
+  const { width } = useWindowDimensions();
+
+  const isMobile = width < 600;
+  const isTablet = width >= 600 && width < 1024;
+  const isDesktop = width >= 1024;
+
+  const horizontalSpace = isMobile ? 16 : isTablet ? 28 : 40;
+  const titleSize = isMobile ? 29 : isTablet ? 36 : 40;
+  const cardPadding = isMobile ? 15 : isTablet ? 19 : 22;
+  const contentMaxWidth = 1100;
+
   const [tournamentName, setTournamentName] = useState(
     'Mi torneo PredictFutbolIA'
   );
@@ -81,11 +68,7 @@ export default function TournamentSetupScreen({
     (round) => round.value === startingRound
   )!;
 
-  // Se conservan los nombres originales del CSV.
-  const [teams, setTeams] = useState<string[]>(
-    Array(32).fill('')
-  );
-
+  const [teams, setTeams] = useState<string[]>(Array(32).fill(''));
   const [availableTeams, setAvailableTeams] = useState<string[]>([]);
   const [activeTeamIndex, setActiveTeamIndex] = useState<number | null>(null);
   const [searchText, setSearchText] = useState('');
@@ -164,15 +147,10 @@ export default function TournamentSetupScreen({
       (item) => item.value === round
     );
 
-    if (!option) {
-      return;
-    }
+    if (!option) return;
 
     setStartingRound(round);
-
-    // Reiniciar las selecciones al cambiar de fase.
     setTeams(Array(option.teamCount).fill(''));
-
     setActiveTeamIndex(null);
     setSearchText('');
     setErrorMessage('');
@@ -189,9 +167,7 @@ export default function TournamentSetupScreen({
   };
 
   const openTeamSelector = (index: number) => {
-    if (isLoadingTeams || availableTeams.length === 0) {
-      return;
-    }
+    if (isLoadingTeams || availableTeams.length === 0) return;
 
     if (activeTeamIndex === index) {
       setActiveTeamIndex(null);
@@ -238,14 +214,11 @@ export default function TournamentSetupScreen({
     }
 
     const selectedTeams = teams.map((team) => team.trim());
-
     const normalizedTeams = selectedTeams.map((team) =>
       team.toLowerCase()
     );
 
-    if (
-      new Set(normalizedTeams).size !== selectedRound.teamCount
-    ) {
+    if (new Set(normalizedTeams).size !== selectedRound.teamCount) {
       setErrorMessage(
         'Hay equipos repetidos. Cada selección debe ser diferente.'
       );
@@ -273,6 +246,9 @@ export default function TournamentSetupScreen({
   const registeredTeams = teams.filter(
     (team) => team.trim() !== ''
   ).length;
+
+  const progressPercentage =
+    (registeredTeams / selectedRound.teamCount) * 100;
 
   const renderTeamSelector = (index: number, label: string) => {
     const isActive = activeTeamIndex === index;
@@ -366,201 +342,271 @@ export default function TournamentSetupScreen({
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingHorizontal: horizontalSpace,
+          paddingTop: isMobile ? 18 : 28,
+          paddingBottom: isMobile ? 35 : 50,
+          alignItems: 'center',
+        },
+      ]}
       keyboardShouldPersistTaps="handled"
     >
-      <TouchableOpacity onPress={onBack} style={styles.backButton}>
-        <Text style={styles.backText}>← Volver</Text>
-      </TouchableOpacity>
+      <View style={{ width: '100%', maxWidth: contentMaxWidth }}>
+        <TouchableOpacity
+          onPress={onBack}
+          style={styles.backButton}
+        >
+          <Text style={styles.backText}>← Volver</Text>
+        </TouchableOpacity>
 
-      <View style={styles.header}>
-        <Text style={styles.brand}>PREDICTIA</Text>
-        <Text style={styles.subtitle}>PREDICCIÓN DE TORNEOS</Text>
-      </View>
-
-      <View style={styles.titleContainer}>
-        <Text style={styles.title}>Crear torneo</Text>
-        <Text style={styles.description}>
-          Elige la fase en la que deseas comenzar y selecciona
-          los países que participarán.
-        </Text>
-      </View>
-
-      <View style={styles.formCard}>
-        <Text style={styles.sectionTitle}>
-          FASE INICIAL DEL TORNEO
-        </Text>
-
-        <Text style={styles.phaseDescription}>
-          Puedes comenzar desde cualquiera de las cinco fases.
-        </Text>
-
-        <View style={styles.roundOptions}>
-          {ROUND_OPTIONS.map((round) => {
-            const isSelected = startingRound === round.value;
-
-            return (
-              <TouchableOpacity
-                key={round.value}
-                style={[
-                  styles.roundOption,
-                  isSelected && styles.roundOptionSelected,
-                ]}
-                onPress={() => handleRoundChange(round.value)}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={[
-                    styles.roundOptionText,
-                    isSelected && styles.roundOptionTextSelected,
-                  ]}
-                >
-                  {round.label}
-                </Text>
-
-                <Text
-                  style={[
-                    styles.roundOptionCount,
-                    isSelected && styles.roundOptionCountSelected,
-                  ]}
-                >
-                  {round.teamCount} selecciones
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+        <View
+          style={[
+            styles.header,
+            { marginBottom: isMobile ? 22 : 30 },
+          ]}
+        >
+          <Text style={styles.brand}>PREDICTIA</Text>
+          <Text style={styles.subtitle}>PREDICCIÓN DE TORNEOS</Text>
         </View>
 
-        <View style={styles.phaseInfo}>
-          <Text style={styles.phaseInfoText}>
-            {selectedRound.teamCount} selecciones ·{' '}
-            {selectedRound.matchCount} enfrentamientos
+        <View style={styles.titleContainer}>
+          <Text style={[styles.title, { fontSize: titleSize }]}>
+            Crear torneo
+          </Text>
+
+          <Text style={styles.description}>
+            Elige la fase en la que deseas comenzar y selecciona
+            los países que participarán.
           </Text>
         </View>
-      </View>
 
-      <View style={styles.progressCard}>
-        <Text style={styles.progressLabel}>
-          SELECCIONES REGISTRADAS
-        </Text>
+        {/* FASE INICIAL */}
+        <View
+          style={[
+            styles.formCard,
+            {
+              padding: cardPadding,
+              maxWidth: 950,
+              alignSelf: 'center',
+            },
+          ]}
+        >
+          <Text style={styles.sectionTitle}>
+            FASE INICIAL DEL TORNEO
+          </Text>
 
-        <Text style={styles.progressNumber}>
-          {registeredTeams}/{selectedRound.teamCount}
-        </Text>
+          <Text style={styles.phaseDescription}>
+            Puedes comenzar desde cualquiera de las cinco fases.
+          </Text>
 
-        <View style={styles.progressBackground}>
-          <View
-            style={[
-              styles.progressFill,
-              {
-                width: `${(registeredTeams / selectedRound.teamCount) * 100}%`,
-              },
-            ]}
+          <View style={styles.roundOptions}>
+            {ROUND_OPTIONS.map((round) => {
+              const isSelected = startingRound === round.value;
+
+              return (
+                <TouchableOpacity
+                  key={round.value}
+                  style={[
+                    styles.roundOption,
+                    {
+                      width: isMobile ? '100%' : isTablet ? '48%' : '19%',
+                    },
+                    isSelected && styles.roundOptionSelected,
+                  ]}
+                  onPress={() => handleRoundChange(round.value)}
+                  activeOpacity={0.8}
+                >
+                  <Text
+                    style={[
+                      styles.roundOptionText,
+                      isSelected && styles.roundOptionTextSelected,
+                    ]}
+                  >
+                    {round.label}
+                  </Text>
+
+                  <Text
+                    style={[
+                      styles.roundOptionCount,
+                      isSelected && styles.roundOptionCountSelected,
+                    ]}
+                  >
+                    {round.teamCount} selecciones
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={styles.phaseInfo}>
+            <Text style={styles.phaseInfoText}>
+              {selectedRound.teamCount} selecciones ·{' '}
+              {selectedRound.matchCount} enfrentamientos
+            </Text>
+          </View>
+        </View>
+
+        {/* PROGRESO */}
+        <View
+          style={[
+            styles.progressCard,
+            {
+              padding: cardPadding,
+              maxWidth: 950,
+              alignSelf: 'center',
+            },
+          ]}
+        >
+          <Text style={styles.progressLabel}>
+            SELECCIONES REGISTRADAS
+          </Text>
+
+          <Text style={styles.progressNumber}>
+            {registeredTeams}/{selectedRound.teamCount}
+          </Text>
+
+          <View style={styles.progressBackground}>
+            <View
+              style={[
+                styles.progressFill,
+                { width: `${progressPercentage}%` },
+              ]}
+            />
+          </View>
+
+          <Text style={styles.availableText}>
+            {availableTeams.length > 0
+              ? `${availableTeams.length} selecciones nacionales disponibles`
+              : 'Consultando selecciones disponibles...'}
+          </Text>
+        </View>
+
+        {isLoadingTeams && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="small" color="#B9F66A" />
+            <Text style={styles.loadingText}>
+              Cargando selecciones desde la base de datos...
+            </Text>
+          </View>
+        )}
+
+        {dataError !== '' && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{dataError}</Text>
+          </View>
+        )}
+
+        {/* INFORMACIÓN DEL TORNEO */}
+        <View
+          style={[
+            styles.formCard,
+            {
+              padding: cardPadding,
+              maxWidth: 950,
+              alignSelf: 'center',
+            },
+          ]}
+        >
+          <Text style={styles.sectionTitle}>
+            INFORMACIÓN DEL TORNEO
+          </Text>
+
+          <Text style={styles.inputLabel}>NOMBRE DEL TORNEO</Text>
+
+          <TextInput
+            style={styles.input}
+            value={tournamentName}
+            onChangeText={setTournamentName}
+            placeholder="Ej. Mundial de fútbol"
+            placeholderTextColor="#68756C"
           />
         </View>
 
-        <Text style={styles.availableText}>
-          {availableTeams.length > 0
-            ? `${availableTeams.length} selecciones nacionales disponibles`
-            : 'Consultando selecciones disponibles...'}
-        </Text>
-      </View>
+        {/* ENFRENTAMIENTOS */}
+        <View style={styles.matchesHeader}>
+          <Text style={styles.sectionTitle}>
+            {selectedRound.label.toUpperCase()}
+          </Text>
 
-      {isLoadingTeams && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="small" color="#B9F66A" />
-          <Text style={styles.loadingText}>
-            Cargando selecciones desde la base de datos...
+          <Text style={styles.matchesDescription}>
+            Selecciona los dos países de cada enfrentamiento.
           </Text>
         </View>
-      )}
 
-      {dataError !== '' && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{dataError}</Text>
+        <View style={styles.matchesGrid}>
+          {Array.from(
+            { length: selectedRound.matchCount },
+            (_, index) => (
+              <View
+                key={`${startingRound}-${index}`}
+                style={[
+                  styles.matchCard,
+                  {
+                    padding: cardPadding,
+                    width: isMobile ? '100%' : isTablet ? '100%' : '48.5%',
+                  },
+                ]}
+              >
+                <View style={styles.matchHeader}>
+                  <Text style={styles.matchNumber}>
+                    ENFRENTAMIENTO {index + 1}
+                  </Text>
+
+                  <Text style={styles.matchStatus}>
+                    PARTIDO {index + 1}/{selectedRound.matchCount}
+                  </Text>
+                </View>
+
+                {renderTeamSelector(index * 2, 'SELECCIÓN A')}
+
+                <View style={styles.vsContainer}>
+                  <View style={styles.vsLine} />
+                  <Text style={styles.vsText}>VS</Text>
+                  <View style={styles.vsLine} />
+                </View>
+
+                {renderTeamSelector(index * 2 + 1, 'SELECCIÓN B')}
+              </View>
+            )
+          )}
         </View>
-      )}
 
-      <View style={styles.formCard}>
-        <Text style={styles.sectionTitle}>
-          INFORMACIÓN DEL TORNEO
-        </Text>
-
-        <Text style={styles.inputLabel}>NOMBRE DEL TORNEO</Text>
-
-        <TextInput
-          style={styles.input}
-          value={tournamentName}
-          onChangeText={setTournamentName}
-          placeholder="Ej. Mundial de fútbol"
-          placeholderTextColor="#68756C"
-        />
-      </View>
-
-      <View style={styles.matchesHeader}>
-        <Text style={styles.sectionTitle}>
-          {selectedRound.label.toUpperCase()}
-        </Text>
-
-        <Text style={styles.matchesDescription}>
-          Selecciona los dos países de cada enfrentamiento.
-        </Text>
-      </View>
-
-      {Array.from(
-        { length: selectedRound.matchCount },
-        (_, index) => (
-          <View key={`${startingRound}-${index}`} style={styles.matchCard}>
-            <View style={styles.matchHeader}>
-              <Text style={styles.matchNumber}>
-                ENFRENTAMIENTO {index + 1}
-              </Text>
-
-              <Text style={styles.matchStatus}>
-                PARTIDO {index + 1}/{selectedRound.matchCount}
-              </Text>
-            </View>
-
-            {renderTeamSelector(index * 2, 'SELECCIÓN A')}
-
-            <View style={styles.vsContainer}>
-              <View style={styles.vsLine} />
-              <Text style={styles.vsText}>VS</Text>
-              <View style={styles.vsLine} />
-            </View>
-
-            {renderTeamSelector(index * 2 + 1, 'SELECCIÓN B')}
+        {errorMessage !== '' && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{errorMessage}</Text>
           </View>
-        )
-      )}
+        )}
 
-      {errorMessage !== '' && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{errorMessage}</Text>
-        </View>
-      )}
+        <TouchableOpacity
+          style={[
+            styles.continueButton,
+            {
+              width: '100%',
+              maxWidth: 650,
+              alignSelf: 'center',
+            },
+            (isLoadingTeams ||
+              availableTeams.length < selectedRound.teamCount) &&
+              styles.disabledButton,
+          ]}
+          onPress={handleContinue}
+          disabled={
+            isLoadingTeams ||
+            availableTeams.length < selectedRound.teamCount
+          }
+          activeOpacity={0.85}
+        >
+          <Text style={styles.continueButtonText}>
+            CONTINUAR AL TORNEO →
+          </Text>
+        </TouchableOpacity>
 
-      <TouchableOpacity
-        style={[
-          styles.continueButton,
-          (isLoadingTeams ||
-            availableTeams.length < selectedRound.teamCount) &&
-            styles.disabledButton,
-        ]}
-        onPress={handleContinue}
-        disabled={
-          isLoadingTeams ||
-          availableTeams.length < selectedRound.teamCount
-        }
-      >
-        <Text style={styles.continueButtonText}>
-          CONTINUAR AL TORNEO →
+        <Text style={styles.footer}>
+          PredictFutbolIA · Modelo de simulación Monte Carlo
         </Text>
-      </TouchableOpacity>
-
-      <Text style={styles.footer}>
-        PredictFutbolIA · Modelo de simulación Monte Carlo
-      </Text>
+      </View>
     </ScrollView>
   );
 }
@@ -619,6 +665,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2A3A2E',
     marginBottom: 20,
+    width: '100%',
   },
   progressLabel: {
     color: '#A8B5AA',
@@ -661,6 +708,7 @@ const styles = StyleSheet.create({
   loadingText: {
     color: '#A8B5AA',
     fontSize: 12,
+    flexShrink: 1,
   },
   formCard: {
     backgroundColor: '#19251E',
@@ -669,6 +717,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2A3A2E',
     marginBottom: 20,
+    width: '100%',
   },
   sectionTitle: {
     color: '#B9F66A',
@@ -681,8 +730,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 9,
     marginBottom: 15,
+    lineHeight: 18,
   },
   roundOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
     gap: 9,
   },
   roundOption: {
@@ -691,6 +744,7 @@ const styles = StyleSheet.create({
     borderColor: '#354439',
     borderRadius: 9,
     padding: 13,
+    flexGrow: 1,
   },
   roundOptionSelected: {
     borderColor: '#B9F66A',
@@ -739,6 +793,8 @@ const styles = StyleSheet.create({
     padding: 14,
     color: '#F0F5EF',
     fontSize: 14,
+    width: '100%',
+    minWidth: 0,
   },
   matchesHeader: {
     marginBottom: 18,
@@ -748,6 +804,15 @@ const styles = StyleSheet.create({
     color: '#9AA79D',
     fontSize: 12,
     marginTop: 8,
+    lineHeight: 18,
+  },
+  matchesGrid: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
   },
   matchCard: {
     backgroundColor: '#19251E',
@@ -755,10 +820,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2A3A2E',
     padding: 17,
-    marginBottom: 13,
+    marginBottom: 4,
+    minWidth: 0,
   },
   matchHeader: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 17,
@@ -777,6 +844,8 @@ const styles = StyleSheet.create({
   },
   teamInputContainer: {
     gap: 8,
+    width: '100%',
+    minWidth: 0,
   },
   teamLabel: {
     color: '#A8B5AA',
@@ -794,6 +863,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     gap: 10,
+    minWidth: 0,
+    width: '100%',
   },
   teamSelectorActive: {
     borderColor: '#B9F66A',
@@ -802,6 +873,7 @@ const styles = StyleSheet.create({
     color: '#F0F5EF',
     fontSize: 14,
     flex: 1,
+    minWidth: 0,
   },
   placeholderText: {
     color: '#68756C',
@@ -817,6 +889,8 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     padding: 10,
     marginTop: 4,
+    width: '100%',
+    minWidth: 0,
   },
   searchInput: {
     backgroundColor: '#19251E',
@@ -827,6 +901,8 @@ const styles = StyleSheet.create({
     color: '#F0F5EF',
     fontSize: 13,
     marginBottom: 8,
+    minWidth: 0,
+    width: '100%',
   },
   optionsList: {
     maxHeight: 220,
@@ -842,6 +918,7 @@ const styles = StyleSheet.create({
   },
   optionTextContainer: {
     flex: 1,
+    minWidth: 0,
   },
   optionText: {
     color: '#F0F5EF',
@@ -868,6 +945,7 @@ const styles = StyleSheet.create({
     color: '#68756C',
     fontSize: 9,
     marginTop: 8,
+    lineHeight: 14,
   },
   vsContainer: {
     flexDirection: 'row',
@@ -892,10 +970,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 14,
     marginTop: 15,
+    width: '100%',
   },
   errorText: {
     color: '#FF9999',
     fontSize: 13,
+    lineHeight: 19,
   },
   continueButton: {
     backgroundColor: '#B9F66A',
@@ -912,11 +992,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '900',
     letterSpacing: 1,
+    textAlign: 'center',
   },
   footer: {
     color: '#68756C',
     fontSize: 10,
     textAlign: 'center',
     marginTop: 25,
+    lineHeight: 16,
   },
 });

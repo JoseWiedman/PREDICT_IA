@@ -7,6 +7,7 @@ import {
   ScrollView,
   Pressable,
   StatusBar,
+  useWindowDimensions,
 } from 'react-native';
 
 interface HomeScreenProps {
@@ -22,6 +23,25 @@ export default function HomeScreen({
   onAnalyze,
   onSimulate,
 }: HomeScreenProps) {
+  const { width } = useWindowDimensions();
+
+  // Adaptación según el tamaño de pantalla.
+  const isMobile = width < 600;
+  const isTablet = width >= 600 && width < 1024;
+
+  const horizontalSpace = isMobile ? 18 : isTablet ? 25 : 30;
+  const titleSize = isMobile ? 34 : isTablet ? 39 : 42;
+  const heroTitleSize = isMobile ? 24 : 29;
+
+  const responsive = {
+    horizontal: {
+      paddingHorizontal: horizontalSpace,
+    },
+    marginHorizontal: {
+      marginHorizontal: horizontalSpace,
+    },
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -33,8 +53,8 @@ export default function HomeScreen({
         <View style={styles.pageContainer}>
 
           {/* ENCABEZADO */}
-          <View style={styles.header}>
-            <View>
+          <View style={[styles.header, responsive.horizontal]}>
+            <View style={styles.brandContainer}>
               <Text style={styles.brand}>
                 PREDICT<Text style={styles.brandAccent}>IA</Text>
               </Text>
@@ -53,11 +73,16 @@ export default function HomeScreen({
             >
               <Text style={styles.logoutIcon}>↗</Text>
 
-              <View>
+              <View style={styles.logoutInfo}>
                 <Text style={styles.logoutText}>
                   Cerrar sesión
                 </Text>
-                <Text style={styles.logoutUser}>
+
+                <Text
+                  style={styles.logoutUser}
+                  numberOfLines={1}
+                  ellipsizeMode="tail"
+                >
                   {userName}
                 </Text>
               </View>
@@ -65,9 +90,16 @@ export default function HomeScreen({
           </View>
 
           {/* BIENVENIDA */}
-          <View style={styles.welcomeSection}>
+          <View
+            style={[
+              styles.welcomeSection,
+              responsive.horizontal,
+              { marginTop: isMobile ? 18 : 28 },
+            ]}
+          >
             <View style={styles.welcomeTag}>
               <View style={styles.onlineDot} />
+
               <Text style={styles.overline}>
                 PLATAFORMA DE ANÁLISIS DEPORTIVO
               </Text>
@@ -77,7 +109,15 @@ export default function HomeScreen({
               Bienvenido, {userName}
             </Text>
 
-            <Text style={styles.title}>
+            <Text
+              style={[
+                styles.title,
+                {
+                  fontSize: titleSize,
+                  lineHeight: isMobile ? 40 : 48,
+                },
+              ]}
+            >
               El fútbol se{'\n'}
               <Text style={styles.titleAccent}>
                 puede predecir.
@@ -92,10 +132,20 @@ export default function HomeScreen({
           </View>
 
           {/* TARJETA PRINCIPAL */}
-          <View style={styles.heroCard}>
+          <View
+            style={[
+              styles.heroCard,
+              responsive.marginHorizontal,
+              {
+                padding: isMobile ? 17 : 23,
+                minHeight: isMobile ? 215 : 235,
+              },
+            ]}
+          >
             <View style={styles.heroTop}>
               <View style={styles.heroBadge}>
                 <View style={styles.heroDot} />
+
                 <Text style={styles.heroBadgeText}>
                   SISTEMA ACTIVO
                 </Text>
@@ -108,7 +158,12 @@ export default function HomeScreen({
 
             <View style={styles.heroContent}>
               <View style={styles.heroTextContent}>
-                <Text style={styles.heroTitle}>
+                <Text
+                  style={[
+                    styles.heroTitle,
+                    { fontSize: heroTitleSize },
+                  ]}
+                >
                   Los datos detrás{'\n'}
                   de cada partido.
                 </Text>
@@ -120,7 +175,14 @@ export default function HomeScreen({
               </View>
 
               <View style={styles.heroBallContainer}>
-                <Text style={styles.heroBall}>⚽</Text>
+                <Text
+                  style={[
+                    styles.heroBall,
+                    { fontSize: isMobile ? 75 : 100 },
+                  ]}
+                >
+                  ⚽
+                </Text>
               </View>
             </View>
 
@@ -128,37 +190,74 @@ export default function HomeScreen({
               <Text style={styles.heroFooterText}>
                 DATOS · ESTADÍSTICAS · SIMULACIÓN
               </Text>
+
               <Text style={styles.heroArrow}>↗</Text>
             </View>
           </View>
 
           {/* INDICADORES */}
-          <View style={styles.indicators}>
-            <View style={styles.indicatorCard}>
+          <View
+            style={[
+              styles.indicators,
+              responsive.horizontal,
+              { gap: isMobile ? 9 : 10 },
+            ]}
+          >
+            <View
+              style={[
+                styles.indicatorCard,
+                {
+                  width: isMobile ? '48%' : isTablet ? '31%' : undefined,
+                  flex: isMobile || isTablet ? 0 : 1,
+                },
+              ]}
+            >
               <Text style={styles.indicatorIcon}>▤</Text>
+
               <Text style={styles.indicatorTitle}>
                 Datos históricos
               </Text>
+
               <Text style={styles.indicatorDescription}>
                 Resultados internacionales
               </Text>
             </View>
 
-            <View style={styles.indicatorCard}>
+            <View
+              style={[
+                styles.indicatorCard,
+                {
+                  width: isMobile ? '48%' : isTablet ? '31%' : undefined,
+                  flex: isMobile || isTablet ? 0 : 1,
+                },
+              ]}
+            >
               <Text style={styles.indicatorIcon}>◉</Text>
+
               <Text style={styles.indicatorTitle}>
                 Monte Carlo
               </Text>
+
               <Text style={styles.indicatorDescription}>
                 Simulación de escenarios
               </Text>
             </View>
 
-            <View style={styles.indicatorCard}>
+            <View
+              style={[
+                styles.indicatorCard,
+                {
+                  width: isMobile ? '100%' : isTablet ? '31%' : undefined,
+                  flex: isMobile || isTablet ? 0 : 1,
+                },
+              ]}
+            >
               <Text style={styles.indicatorIcon}>🏆</Text>
+
               <Text style={styles.indicatorTitle}>
                 Torneos
               </Text>
+
               <Text style={styles.indicatorDescription}>
                 Cuadros de eliminación
               </Text>
@@ -166,11 +265,17 @@ export default function HomeScreen({
           </View>
 
           {/* HERRAMIENTAS */}
-          <View style={styles.sectionHeader}>
+          <View
+            style={[
+              styles.sectionHeader,
+              responsive.horizontal,
+            ]}
+          >
             <View>
               <Text style={styles.sectionOverline}>
                 HERRAMIENTAS
               </Text>
+
               <Text style={styles.sectionTitle}>
                 Explora PREDICTIA
               </Text>
@@ -186,6 +291,7 @@ export default function HomeScreen({
             onPress={onAnalyze}
             style={({ pressed }) => [
               styles.moduleCard,
+              responsive.marginHorizontal,
               pressed && styles.modulePressed,
             ]}
           >
@@ -218,6 +324,7 @@ export default function HomeScreen({
             onPress={onSimulate}
             style={({ pressed }) => [
               styles.moduleCard,
+              responsive.marginHorizontal,
               pressed && styles.modulePressed,
             ]}
           >
@@ -246,7 +353,12 @@ export default function HomeScreen({
           </Pressable>
 
           {/* TORNEOS */}
-          <View style={styles.tournamentInfo}>
+          <View
+            style={[
+              styles.tournamentInfo,
+              responsive.marginHorizontal,
+            ]}
+          >
             <View style={styles.tournamentIcon}>
               <Text style={styles.tournamentIconText}>🏆</Text>
             </View>
@@ -268,7 +380,12 @@ export default function HomeScreen({
           </View>
 
           {/* INFORMACIÓN */}
-          <View style={styles.infoSection}>
+          <View
+            style={[
+              styles.infoSection,
+              responsive.marginHorizontal,
+            ]}
+          >
             <Text style={styles.infoLabel}>
               SOBRE EL PROYECTO
             </Text>
@@ -287,11 +404,17 @@ export default function HomeScreen({
           </View>
 
           {/* PIE DE PÁGINA */}
-          <View style={styles.footer}>
+          <View
+            style={[
+              styles.footer,
+              responsive.horizontal,
+            ]}
+          >
             <View>
               <Text style={styles.footerBrand}>
                 PREDICTFUTBOLIA
               </Text>
+
               <Text style={styles.footerDescription}>
                 El fútbol, desde los datos.
               </Text>
@@ -313,106 +436,132 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#101914',
   },
+
   scrollContent: {
     flexGrow: 1,
   },
+
   pageContainer: {
     width: '100%',
     maxWidth: 1050,
     alignSelf: 'center',
     paddingBottom: 30,
   },
+
   header: {
-    paddingHorizontal: 30,
-    paddingTop: 35,
-    paddingBottom: 25,
+    paddingTop: 30,
+    paddingBottom: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 10,
   },
+
+  brandContainer: {
+    flexShrink: 1,
+  },
+
   brand: {
     color: '#FFFFFF',
     fontSize: 21,
     fontWeight: '900',
     letterSpacing: 2,
   },
+
   brandAccent: {
     color: '#B9F66A',
   },
+
   headerSubtitle: {
     color: '#78877D',
     fontSize: 9,
     letterSpacing: 2,
     marginTop: 5,
   },
+
   logoutButton: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
-    paddingHorizontal: 13,
+    paddingHorizontal: 11,
     paddingVertical: 10,
     borderRadius: 12,
     borderWidth: 1,
     borderColor: '#344238',
     backgroundColor: '#1B2720',
+    flexShrink: 0,
   },
+
+  logoutInfo: {
+    maxWidth: 115,
+  },
+
   logoutIcon: {
     color: '#B9F66A',
     fontSize: 19,
     fontWeight: '700',
   },
+
   logoutText: {
     color: '#F2F5F0',
     fontSize: 10,
     fontWeight: '800',
   },
+
   logoutUser: {
     color: '#B9F66A',
     fontSize: 9,
     marginTop: 3,
   },
+
   pressed: {
     opacity: 0.7,
   },
+
   welcomeSection: {
-    paddingHorizontal: 30,
     marginTop: 28,
-    marginBottom: 30,
+    marginBottom: 25,
   },
+
   welcomeTag: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
     marginBottom: 18,
+    flexWrap: 'wrap',
   },
+
   onlineDot: {
     width: 7,
     height: 7,
     borderRadius: 5,
     backgroundColor: '#B9F66A',
   },
+
   overline: {
     color: '#B9F66A',
     fontSize: 9,
     fontWeight: '900',
-    letterSpacing: 2,
+    letterSpacing: 1.5,
   },
+
   userGreeting: {
     color: '#A5B0A8',
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 12,
   },
+
   title: {
     color: '#FFFFFF',
-    fontSize: 42,
-    lineHeight: 48,
     fontWeight: '900',
     letterSpacing: -1.5,
   },
+
   titleAccent: {
     color: '#B9F66A',
   },
+
   description: {
     color: '#A5B0A8',
     fontSize: 13,
@@ -420,19 +569,22 @@ const styles = StyleSheet.create({
     marginTop: 15,
     maxWidth: 480,
   },
+
   heroCard: {
-    marginHorizontal: 30,
     backgroundColor: '#B9F66A',
     borderRadius: 20,
     padding: 23,
     minHeight: 235,
     overflow: 'hidden',
   },
+
   heroTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 8,
   },
+
   heroBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -442,40 +594,46 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     borderRadius: 20,
   },
+
   heroDot: {
     width: 6,
     height: 6,
     borderRadius: 5,
     backgroundColor: '#253820',
   },
+
   heroBadgeText: {
     color: '#253820',
     fontSize: 8,
     fontWeight: '900',
     letterSpacing: 1,
   },
+
   heroNumber: {
     color: '#526C3E',
     fontSize: 8,
     fontWeight: '900',
     letterSpacing: 1,
   },
+
   heroContent: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
+
   heroTextContent: {
     flex: 1,
     zIndex: 2,
   },
+
   heroTitle: {
     color: '#101914',
-    fontSize: 29,
-    lineHeight: 34,
     fontWeight: '900',
+    lineHeight: 34,
     marginTop: 22,
   },
+
   heroDescription: {
     color: '#34472B',
     fontSize: 12,
@@ -483,15 +641,16 @@ const styles = StyleSheet.create({
     marginTop: 10,
     maxWidth: 360,
   },
+
   heroBallContainer: {
     position: 'absolute',
     right: 0,
     bottom: 0,
     opacity: 0.23,
   },
-  heroBall: {
-    fontSize: 100,
-  },
+
+  heroBall: {},
+
   heroFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -500,26 +659,30 @@ const styles = StyleSheet.create({
     borderTopColor: '#91C64D',
     paddingTop: 12,
     marginTop: 17,
+    gap: 5,
   },
+
   heroFooterText: {
     color: '#34472B',
     fontSize: 8,
     fontWeight: '900',
-    letterSpacing: 1,
+    letterSpacing: 0.7,
   },
+
   heroArrow: {
     color: '#253820',
     fontSize: 19,
     fontWeight: '900',
   },
+
   indicators: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     gap: 10,
-    paddingHorizontal: 30,
     marginTop: 18,
   },
+
   indicatorCard: {
-    flex: 1,
     minWidth: 0,
     backgroundColor: '#19251E',
     borderRadius: 12,
@@ -527,30 +690,35 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2A3A2E',
   },
+
   indicatorIcon: {
     color: '#B9F66A',
     fontSize: 19,
     marginBottom: 10,
   },
+
   indicatorTitle: {
     color: '#F2F5F0',
     fontSize: 10,
     fontWeight: '900',
   },
+
   indicatorDescription: {
     color: '#829087',
     fontSize: 8,
     lineHeight: 13,
     marginTop: 5,
   },
+
   sectionHeader: {
-    paddingHorizontal: 30,
     marginTop: 38,
     marginBottom: 17,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-end',
+    gap: 8,
   },
+
   sectionOverline: {
     color: '#829087',
     fontSize: 9,
@@ -558,68 +726,80 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
     marginBottom: 7,
   },
+
   sectionTitle: {
     color: '#F2F5F0',
     fontSize: 20,
     fontWeight: '900',
   },
+
   sectionNumber: {
     color: '#78877D',
     fontSize: 9,
     letterSpacing: 1,
   },
+
   moduleCard: {
-    marginHorizontal: 30,
     marginBottom: 12,
     backgroundColor: '#1B2720',
     borderWidth: 1,
     borderColor: '#344238',
     borderRadius: 15,
-    padding: 17,
+    padding: 15,
     flexDirection: 'row',
     alignItems: 'center',
   },
+
   modulePressed: {
     backgroundColor: '#26372B',
     borderColor: '#B9F66A',
     opacity: 0.85,
   },
+
   moduleIcon: {
-    width: 48,
-    height: 48,
+    width: 45,
+    height: 45,
     borderRadius: 13,
     backgroundColor: '#2A3B2C',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
+
   moduleIconText: {
     color: '#B9F66A',
     fontSize: 25,
     fontWeight: '700',
   },
+
   moduleInfo: {
     flex: 1,
-    marginLeft: 15,
+    minWidth: 0,
+    marginLeft: 12,
     marginRight: 8,
   },
+
   moduleCategory: {
     color: '#B9F66A',
     fontSize: 8,
     fontWeight: '900',
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     marginBottom: 5,
   },
+
   moduleTitle: {
     color: '#F2F5F0',
     fontSize: 14,
     fontWeight: '900',
   },
+
   moduleDescription: {
     color: '#94A197',
     fontSize: 10,
     lineHeight: 16,
     marginTop: 6,
   },
+
   moduleArrowContainer: {
     width: 30,
     height: 30,
@@ -627,16 +807,18 @@ const styles = StyleSheet.create({
     backgroundColor: '#2A3B2C',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
+
   moduleArrow: {
     color: '#B9F66A',
     fontSize: 19,
     fontWeight: '900',
   },
+
   tournamentInfo: {
-    marginHorizontal: 30,
     marginTop: 4,
-    padding: 17,
+    padding: 15,
     backgroundColor: '#19251E',
     borderWidth: 1,
     borderColor: '#B9F66A',
@@ -644,41 +826,49 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+
   tournamentIcon: {
-    width: 48,
-    height: 48,
+    width: 45,
+    height: 45,
     borderRadius: 13,
     backgroundColor: '#2A3B2C',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
+
   tournamentIconText: {
     fontSize: 23,
   },
+
   tournamentText: {
     flex: 1,
-    marginLeft: 15,
+    minWidth: 0,
+    marginLeft: 12,
   },
+
   tournamentCategory: {
     color: '#B9F66A',
     fontSize: 8,
     fontWeight: '900',
-    letterSpacing: 1.5,
+    letterSpacing: 1.2,
     marginBottom: 5,
   },
+
   tournamentTitle: {
     color: '#F2F5F0',
     fontSize: 14,
     fontWeight: '900',
   },
+
   tournamentDescription: {
     color: '#94A197',
     fontSize: 10,
     lineHeight: 16,
     marginTop: 6,
   },
+
   infoSection: {
-    marginHorizontal: 30,
     marginTop: 30,
     padding: 20,
     backgroundColor: '#17231B',
@@ -686,45 +876,53 @@ const styles = StyleSheet.create({
     borderLeftWidth: 3,
     borderLeftColor: '#B9F66A',
   },
+
   infoLabel: {
     color: '#B9F66A',
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 2,
   },
+
   infoTitle: {
     color: '#F2F5F0',
     fontSize: 17,
     fontWeight: '900',
     marginTop: 10,
   },
+
   infoDescription: {
     color: '#A5B0A8',
     fontSize: 11,
     lineHeight: 19,
     marginTop: 9,
   },
+
   footer: {
-    marginHorizontal: 30,
     marginTop: 35,
     paddingTop: 18,
+    paddingBottom: 10,
     borderTopWidth: 1,
     borderTopColor: '#344238',
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    gap: 10,
   },
+
   footerBrand: {
     color: '#78877D',
     fontSize: 9,
     fontWeight: '900',
     letterSpacing: 1.5,
   },
+
   footerDescription: {
     color: '#78877D',
     fontSize: 9,
     marginTop: 5,
   },
+
   footerVersion: {
     color: '#78877D',
     fontSize: 9,

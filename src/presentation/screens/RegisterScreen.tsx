@@ -11,6 +11,7 @@ import {
   Platform,
   Alert,
   ScrollView,
+  useWindowDimensions,
 } from 'react-native';
 
 import {
@@ -37,6 +38,15 @@ export default function RegisterScreen({
   onRegisterSuccess,
   onRegisterEnd,
 }: RegisterScreenProps) {
+  const { width, height } = useWindowDimensions();
+
+  const isMobile = width < 600;
+  const isTablet = width >= 600 && width < 1024;
+
+  const horizontalSpace = isMobile ? 22 : isTablet ? 45 : 60;
+  const titleSize = isMobile ? 30 : isTablet ? 34 : 36;
+  const contentMaxWidth = 480;
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -182,82 +192,117 @@ export default function RegisterScreen({
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <Pressable onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>← Volver al login</Text>
-        </Pressable>
-
-        <Text style={styles.brand}>PREDICTIA</Text>
-        <Text style={styles.title}>Crea tu cuenta.</Text>
-
-        <Text style={styles.subtitle}>
-          Regístrate para comenzar a explorar el fútbol desde los datos.
-        </Text>
-
-        <View style={styles.form}>
-          <Text style={styles.label}>NOMBRE COMPLETO</Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Tu nombre"
-            placeholderTextColor="#78827B"
-            value={name}
-            onChangeText={setName}
-            autoCapitalize="words"
-          />
-
-          <Text style={styles.label}>CORREO ELECTRÓNICO</Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="correo@ejemplo.com"
-            placeholderTextColor="#78827B"
-            value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-
-          <Text style={styles.label}>CONTRASEÑA</Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Mínimo 6 caracteres"
-            placeholderTextColor="#78827B"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-          />
-
-          <Text style={styles.label}>CONFIRMAR CONTRASEÑA</Text>
-
-          <TextInput
-            style={styles.input}
-            placeholder="Repite tu contraseña"
-            placeholderTextColor="#78827B"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            secureTextEntry
-          />
-
+      <ScrollView
+        contentContainerStyle={[
+          styles.scroll,
+          {
+            minHeight: Math.max(height, 750),
+            paddingHorizontal: horizontalSpace,
+            paddingVertical: isMobile ? 65 : 55,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View
+          style={[
+            styles.content,
+            {
+              width: '100%',
+              maxWidth: contentMaxWidth,
+            },
+          ]}
+        >
           <Pressable
-            style={[
-              styles.registerButton,
-              loading && styles.disabledButton,
-            ]}
-            onPress={handleRegister}
-            disabled={loading}
+            onPress={onBack}
+            style={styles.backButton}
           >
-            <Text style={styles.registerButtonText}>
-              {loading ? 'CREANDO CUENTA...' : 'CREAR CUENTA →'}
-            </Text>
+            <Text style={styles.backText}>← Volver al login</Text>
           </Pressable>
-        </View>
 
-        <Text style={styles.footer}>
-          PREDICTFUTBOLIA · ANÁLISIS Y PREDICCIÓN
-        </Text>
+          <Text style={styles.brand}>PREDICTIA</Text>
+
+          <Text
+            style={[
+              styles.title,
+              { fontSize: titleSize },
+            ]}
+          >
+            Crea tu cuenta.
+          </Text>
+
+          <Text style={styles.subtitle}>
+            Regístrate para comenzar a explorar el fútbol desde los datos.
+          </Text>
+
+          <View style={styles.form}>
+            <Text style={styles.label}>NOMBRE COMPLETO</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Tu nombre"
+              placeholderTextColor="#78827B"
+              value={name}
+              onChangeText={setName}
+              autoCapitalize="words"
+              autoCorrect={false}
+            />
+
+            <Text style={styles.label}>CORREO ELECTRÓNICO</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="correo@ejemplo.com"
+              placeholderTextColor="#78827B"
+              value={email}
+              onChangeText={setEmail}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
+            <Text style={styles.label}>CONTRASEÑA</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Mínimo 6 caracteres"
+              placeholderTextColor="#78827B"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              autoCapitalize="none"
+            />
+
+            <Text style={styles.label}>CONFIRMAR CONTRASEÑA</Text>
+
+            <TextInput
+              style={styles.input}
+              placeholder="Repite tu contraseña"
+              placeholderTextColor="#78827B"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              autoCapitalize="none"
+            />
+
+            <Pressable
+              style={[
+                styles.registerButton,
+                loading && styles.disabledButton,
+              ]}
+              onPress={handleRegister}
+              disabled={loading}
+            >
+              <Text style={styles.registerButtonText}>
+                {loading ? 'CREANDO CUENTA...' : 'CREAR CUENTA →'}
+              </Text>
+            </Pressable>
+          </View>
+
+          <Text style={styles.footer}>
+            PREDICTFUTBOLIA · ANÁLISIS Y PREDICCIÓN
+          </Text>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -270,12 +315,15 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flexGrow: 1,
-    padding: 28,
-    paddingTop: 55,
     justifyContent: 'center',
+    alignItems: 'center',
+  },
+  content: {
+    alignSelf: 'center',
   },
   backButton: {
-    marginBottom: 38,
+    marginBottom: 32,
+    alignSelf: 'flex-start',
   },
   backText: {
     color: '#B9F66A',
@@ -291,7 +339,6 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#F2F5F0',
-    fontSize: 34,
     fontWeight: '800',
     marginBottom: 10,
   },
@@ -299,10 +346,11 @@ const styles = StyleSheet.create({
     color: '#9BA79E',
     fontSize: 14,
     lineHeight: 22,
-    marginBottom: 35,
+    marginBottom: 28,
   },
   form: {
     gap: 12,
+    width: '100%',
   },
   label: {
     color: '#AAB5AC',
@@ -320,6 +368,7 @@ const styles = StyleSheet.create({
     paddingVertical: 15,
     color: '#FFFFFF',
     fontSize: 14,
+    minWidth: 0,
   },
   registerButton: {
     backgroundColor: '#B9F66A',
@@ -342,6 +391,6 @@ const styles = StyleSheet.create({
     fontSize: 9,
     letterSpacing: 1.5,
     textAlign: 'center',
-    marginTop: 45,
+    marginTop: 40,
   },
 });

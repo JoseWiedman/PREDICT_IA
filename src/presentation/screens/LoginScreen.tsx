@@ -8,6 +8,8 @@ import {
   Pressable,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
+  useWindowDimensions,
 } from 'react-native';
 
 import { signInWithEmailAndPassword } from 'firebase/auth';
@@ -28,6 +30,15 @@ export default function LoginScreen({
   initialEmail = '',
   initialPassword = '',
 }: LoginScreenProps) {
+  const { width, height } = useWindowDimensions();
+
+  const isMobile = width < 600;
+  const isTablet = width >= 600 && width < 1024;
+
+  const horizontalSpace = isMobile ? 22 : isTablet ? 45 : 60;
+  const titleSize = isMobile ? 29 : isTablet ? 34 : 36;
+  const contentMaxWidth = isMobile ? 480 : 460;
+
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState(initialPassword);
   const [showPassword, setShowPassword] = useState(false);
@@ -49,14 +60,12 @@ export default function LoginScreen({
     try {
       setLoading(true);
 
-      // Validar las credenciales con Firebase
       const userCredential = await signInWithEmailAndPassword(
         auth,
         cleanEmail,
         password
       );
 
-      // Obtener el nombre registrado en Firebase
       const userName =
         userCredential.user.displayName ||
         userCredential.user.email?.split('@')[0] ||
@@ -114,111 +123,143 @@ export default function LoginScreen({
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <View style={styles.content}>
-        <Pressable onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>← Volver</Text>
-        </Pressable>
-
-        <Text style={styles.brand}>
-          PREDICT<Text style={styles.brandAccent}>IA</Text>
-        </Text>
-
-        <Text style={styles.title}>Bienvenido de nuevo.</Text>
-
-        <Text style={styles.subtitle}>
-          Ingresa a tu cuenta para continuar con el análisis y la predicción
-          de partidos.
-        </Text>
-
-        <View style={styles.form}>
-          <Text style={styles.label}>CORREO ELECTRÓNICO</Text>
-
-          <TextInput
-            style={[
-              styles.input,
-              errorMessage !== '' && styles.inputError,
-            ]}
-            placeholder="correo@ejemplo.com"
-            placeholderTextColor="#78827B"
-            value={email}
-            onChangeText={(value) => {
-              setEmail(value);
-              setErrorMessage('');
-            }}
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-          />
-
-          <Text style={styles.label}>CONTRASEÑA</Text>
-
-          <View
-            style={[
-              styles.passwordContainer,
-              errorMessage !== '' && styles.inputError,
-            ]}
-          >
-            <TextInput
-              style={styles.passwordInput}
-              placeholder="Ingresa tu contraseña"
-              placeholderTextColor="#78827B"
-              value={password}
-              onChangeText={(value) => {
-                setPassword(value);
-                setErrorMessage('');
-              }}
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-            />
-
-            <Pressable
-              onPress={() => setShowPassword(!showPassword)}
-            >
-              <Text style={styles.showPassword}>
-                {showPassword ? 'OCULTAR' : 'VER'}
-              </Text>
-            </Pressable>
-          </View>
-
-          {errorMessage !== '' && (
-            <View style={styles.errorContainer}>
-              <Text style={styles.errorIcon}>!</Text>
-              <Text style={styles.errorText}>
-                {errorMessage}
-              </Text>
-            </View>
-          )}
-
+      <ScrollView
+        contentContainerStyle={[
+          styles.scrollContent,
+          {
+            minHeight: Math.max(height, 650),
+            paddingHorizontal: horizontalSpace,
+            paddingVertical: isMobile ? 85 : 65,
+          },
+        ]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <View
+          style={[
+            styles.content,
+            {
+              maxWidth: contentMaxWidth,
+              width: '100%',
+            },
+          ]}
+        >
           <Pressable
-            style={[
-              styles.loginButton,
-              loading && styles.loginButtonDisabled,
-            ]}
-            onPress={handleLogin}
-            disabled={loading}
+            onPress={onBack}
+            style={styles.backButton}
           >
-            <Text style={styles.loginButtonText}>
-              {loading ? 'VALIDANDO...' : 'INICIAR SESIÓN →'}
-            </Text>
+            <Text style={styles.backText}>← Volver</Text>
           </Pressable>
 
-          <View style={styles.registerContainer}>
-            <Text style={styles.registerText}>
-              ¿Aún no tienes una cuenta?
-            </Text>
+          <Text style={styles.brand}>
+            PREDICT<Text style={styles.brandAccent}>IA</Text>
+          </Text>
 
-            <Pressable onPress={onRegister}>
-              <Text style={styles.registerLink}>
-                Crear una cuenta
+          <Text
+            style={[
+              styles.title,
+              { fontSize: titleSize },
+            ]}
+          >
+            Bienvenido de nuevo.
+          </Text>
+
+          <Text style={styles.subtitle}>
+            Ingresa a tu cuenta para continuar con el análisis y la predicción
+            de partidos.
+          </Text>
+
+          <View style={styles.form}>
+            <Text style={styles.label}>CORREO ELECTRÓNICO</Text>
+
+            <TextInput
+              style={[
+                styles.input,
+                errorMessage !== '' && styles.inputError,
+              ]}
+              placeholder="correo@ejemplo.com"
+              placeholderTextColor="#78827B"
+              value={email}
+              onChangeText={(value) => {
+                setEmail(value);
+                setErrorMessage('');
+              }}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+
+            <Text style={styles.label}>CONTRASEÑA</Text>
+
+            <View
+              style={[
+                styles.passwordContainer,
+                errorMessage !== '' && styles.inputError,
+              ]}
+            >
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Ingresa tu contraseña"
+                placeholderTextColor="#78827B"
+                value={password}
+                onChangeText={(value) => {
+                  setPassword(value);
+                  setErrorMessage('');
+                }}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+              />
+
+              <Pressable
+                onPress={() => setShowPassword(!showPassword)}
+                hitSlop={10}
+              >
+                <Text style={styles.showPassword}>
+                  {showPassword ? 'OCULTAR' : 'VER'}
+                </Text>
+              </Pressable>
+            </View>
+
+            {errorMessage !== '' && (
+              <View style={styles.errorContainer}>
+                <Text style={styles.errorIcon}>!</Text>
+                <Text style={styles.errorText}>
+                  {errorMessage}
+                </Text>
+              </View>
+            )}
+
+            <Pressable
+              style={[
+                styles.loginButton,
+                loading && styles.loginButtonDisabled,
+              ]}
+              onPress={handleLogin}
+              disabled={loading}
+            >
+              <Text style={styles.loginButtonText}>
+                {loading ? 'VALIDANDO...' : 'INICIAR SESIÓN →'}
               </Text>
             </Pressable>
-          </View>
-        </View>
 
-        <Text style={styles.footer}>
-          PREDICTFUTBOLIA · ANÁLISIS Y PREDICCIÓN
-        </Text>
-      </View>
+            <View style={styles.registerContainer}>
+              <Text style={styles.registerText}>
+                ¿Aún no tienes una cuenta?
+              </Text>
+
+              <Pressable onPress={onRegister}>
+                <Text style={styles.registerLink}>
+                  Crear una cuenta
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+
+          <Text style={styles.footer}>
+            PREDICTFUTBOLIA · ANÁLISIS Y PREDICCIÓN
+          </Text>
+        </View>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 }
@@ -228,16 +269,18 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#101914',
   },
-  content: {
-    flex: 1,
+  scrollContent: {
+    flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 28,
-    paddingVertical: 35,
+    alignItems: 'center',
+  },
+  content: {
+    justifyContent: 'center',
+    alignSelf: 'center',
   },
   backButton: {
-    position: 'absolute',
-    top: 45,
-    left: 28,
+    marginBottom: 35,
+    alignSelf: 'flex-start',
   },
   backText: {
     color: '#B9F66A',
@@ -256,7 +299,6 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#F2F5F0',
-    fontSize: 32,
     fontWeight: '800',
     marginBottom: 10,
   },
@@ -264,10 +306,11 @@ const styles = StyleSheet.create({
     color: '#9BA79E',
     fontSize: 14,
     lineHeight: 22,
-    marginBottom: 35,
+    marginBottom: 30,
   },
   form: {
     gap: 13,
+    width: '100%',
   },
   label: {
     color: '#AAB5AC',
@@ -285,6 +328,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     color: '#FFFFFF',
     fontSize: 14,
+    minWidth: 0,
   },
   inputError: {
     borderColor: '#E56B6B',
@@ -297,9 +341,11 @@ const styles = StyleSheet.create({
     borderColor: '#344238',
     borderRadius: 12,
     paddingHorizontal: 16,
+    minWidth: 0,
   },
   passwordInput: {
     flex: 1,
+    minWidth: 0,
     paddingVertical: 16,
     color: '#FFFFFF',
     fontSize: 14,
@@ -361,6 +407,7 @@ const styles = StyleSheet.create({
   registerText: {
     color: '#9BA79E',
     fontSize: 13,
+    textAlign: 'center',
   },
   registerLink: {
     color: '#B9F66A',

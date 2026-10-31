@@ -7,6 +7,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from 'react-native';
 
 import type {
@@ -56,6 +57,16 @@ export default function TournamentResultsScreen({
   onBack,
   onContinueTournament,
 }: TournamentResultsScreenProps) {
+  const { width } = useWindowDimensions();
+
+  const isMobile = width < 600;
+  const isTablet = width >= 600 && width < 1024;
+
+  const horizontalSpace = isMobile ? 18 : isTablet ? 32 : 45;
+  const titleSize = isMobile ? 25 : isTablet ? 30 : 34;
+  const cardPadding = isMobile ? 14 : 20;
+  const contentMaxWidth = 1150;
+
   const getMatches = (round: TournamentRound) =>
     tournament.matches.filter((match) => match.round === round);
 
@@ -349,7 +360,13 @@ export default function TournamentResultsScreen({
     const teamBWon = match.winner === match.teamB;
 
     return (
-      <View key={match.id} style={styles.probabilityCard}>
+      <View
+        key={match.id}
+        style={[
+          styles.probabilityCard,
+          { padding: cardPadding },
+        ]}
+      >
         <View style={styles.probabilityCardHeader}>
           <Text style={styles.probabilityMatchNumber}>
             PARTIDO {match.id}
@@ -362,6 +379,7 @@ export default function TournamentResultsScreen({
 
         <View style={styles.probabilityTeamRow}>
           <Text
+            numberOfLines={2}
             style={[
               styles.probabilityTeamName,
               teamAWon && styles.bracketWinner,
@@ -377,6 +395,7 @@ export default function TournamentResultsScreen({
 
         <View style={styles.probabilityTeamRow}>
           <Text
+            numberOfLines={2}
             style={[
               styles.probabilityTeamName,
               teamBWon && styles.bracketWinner,
@@ -435,222 +454,280 @@ export default function TournamentResultsScreen({
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingHorizontal: horizontalSpace,
+          paddingTop: isMobile ? 18 : 28,
+          paddingBottom: isMobile ? 35 : 50,
+          alignItems: 'center',
+        },
+      ]}
     >
-      <TouchableOpacity onPress={onBack} style={styles.backButton}>
-        <Text style={styles.backText}>← Volver</Text>
-      </TouchableOpacity>
-
-      <View style={styles.header}>
-        <Text style={styles.brand}>PREDICTIA</Text>
-        <Text style={styles.subtitle}>PREDICCIÓN DE TORNEO</Text>
-      </View>
-
-      <Text style={styles.title}>{tournament.tournamentName}</Text>
-
-      <Text style={styles.description}>
-        Cuadro de eliminación y análisis estadístico de cada
-        enfrentamiento.
-      </Text>
-
-      <View style={styles.summaryCard}>
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryValue}>
-            {tournament.teams.length}
-          </Text>
-          <Text style={styles.summaryLabel}>SELECCIONES</Text>
-        </View>
-
-        <View style={styles.summaryDivider} />
-
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryValue}>
-            {tournament.matches.length}
-          </Text>
-          <Text style={styles.summaryLabel}>PARTIDOS</Text>
-        </View>
-
-        <View style={styles.summaryDivider} />
-
-        <View style={styles.summaryItem}>
-          <Text style={styles.summaryValue}>
-            {phasesCompleted}/{totalPhases}
-          </Text>
-          <Text style={styles.summaryLabel}>FASES</Text>
-        </View>
-      </View>
-
-      {nextRound && (
+      <View style={{ width: '100%', maxWidth: contentMaxWidth }}>
         <TouchableOpacity
-          style={styles.continueButton}
-          onPress={() => onContinueTournament(nextRound)}
+          onPress={onBack}
+          style={styles.backButton}
         >
-          <Text style={styles.continueButtonTitle}>
-            CONTINUAR TORNEO →
-          </Text>
-
-          <Text style={styles.continueButtonDescription}>
-            Simular la siguiente fase: {ROUND_NAMES[nextRound]}
-          </Text>
+          <Text style={styles.backText}>← Volver</Text>
         </TouchableOpacity>
-      )}
 
-      {!nextRound && tournament.champion && (
-        <View style={styles.completedTournament}>
-          <Text style={styles.completedTournamentText}>
-            TORNEO FINALIZADO
-          </Text>
+        <View
+          style={[
+            styles.header,
+            { marginBottom: isMobile ? 17 : 22 },
+          ]}
+        >
+          <Text style={styles.brand}>PREDICTIA</Text>
+          <Text style={styles.subtitle}>PREDICCIÓN DE TORNEO</Text>
         </View>
-      )}
 
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          CUADRO DE ELIMINACIÓN
+        <Text style={[styles.title, { fontSize: titleSize }]}>
+          {tournament.tournamentName}
         </Text>
 
-        <Text style={styles.sectionDescription}>
-          Recorrido de las selecciones hasta la gran final.
+        <Text style={styles.description}>
+          Cuadro de eliminación y análisis estadístico de cada
+          enfrentamiento.
         </Text>
-      </View>
 
-      <ScrollView
-        horizontal
-        nestedScrollEnabled
-        showsHorizontalScrollIndicator
-        contentContainerStyle={styles.bracketScroll}
-      >
-        <View style={styles.bracketCanvas}>
-          {renderConnections(
-            0,
-            180,
-            MATCH_CENTERS.first,
-            MATCH_CENTERS.second,
-            'left'
-          )}
+        {/* RESUMEN DEL TORNEO */}
+        <View
+          style={[
+            styles.summaryCard,
+            {
+              padding: cardPadding,
+              flexWrap: 'wrap',
+            },
+          ]}
+        >
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>
+              {tournament.teams.length}
+            </Text>
+            <Text style={styles.summaryLabel}>SELECCIONES</Text>
+          </View>
 
-          {renderConnections(
-            180,
-            360,
-            MATCH_CENTERS.second,
-            MATCH_CENTERS.third,
-            'left'
-          )}
+          <View style={styles.summaryDivider} />
 
-          {renderConnections(
-            360,
-            540,
-            MATCH_CENTERS.third,
-            MATCH_CENTERS.semi,
-            'left'
-          )}
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>
+              {tournament.matches.length}
+            </Text>
+            <Text style={styles.summaryLabel}>PARTIDOS</Text>
+          </View>
 
-          {renderConnections(
-            1440,
-            1260,
-            MATCH_CENTERS.first,
-            MATCH_CENTERS.second,
-            'right'
-          )}
+          <View style={styles.summaryDivider} />
 
-          {renderConnections(
-            1260,
-            1080,
-            MATCH_CENTERS.second,
-            MATCH_CENTERS.third,
-            'right'
-          )}
-
-          {renderConnections(
-            1080,
-            900,
-            MATCH_CENTERS.third,
-            MATCH_CENTERS.semi,
-            'right'
-          )}
-
-          <View style={[styles.finalConnector, { left: 690 }]} />
-          <View style={[styles.finalConnector, { left: 900 }]} />
-
-          {renderBracketColumn(leftFirst, 0, MATCH_CENTERS.first)}
-          {renderBracketColumn(leftSecond, 180, MATCH_CENTERS.second)}
-          {renderBracketColumn(leftQuarter, 360, MATCH_CENTERS.third)}
-          {renderBracketColumn(leftSemi, 540, MATCH_CENTERS.semi)}
-
-          {renderBracketColumn(rightFirst, 1440, MATCH_CENTERS.first)}
-          {renderBracketColumn(rightSecond, 1260, MATCH_CENTERS.second)}
-          {renderBracketColumn(rightQuarter, 1080, MATCH_CENTERS.third)}
-          {renderBracketColumn(rightSemi, 900, MATCH_CENTERS.semi)}
-
-          {renderFinal()}
+          <View style={styles.summaryItem}>
+            <Text style={styles.summaryValue}>
+              {phasesCompleted}/{totalPhases}
+            </Text>
+            <Text style={styles.summaryLabel}>FASES</Text>
+          </View>
         </View>
-      </ScrollView>
 
-      <Text style={styles.scrollHint}>
-        ← Desliza horizontalmente para recorrer el cuadro →
-      </Text>
-
-      {tournament.champion && (
-        <View style={styles.championCard}>
-          <Text style={styles.championTrophy}>🏆</Text>
-
-          <Text style={styles.championLabel}>
-            CAMPEÓN PROYECTADO
-          </Text>
-
-          <Text style={styles.championName}>
-            {getTeamDisplayName(tournament.champion)}
-          </Text>
-        </View>
-      )}
-
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>
-          ANÁLISIS DE PROBABILIDADES
-        </Text>
-
-        <Text style={styles.sectionDescription}>
-          Probabilidades estimadas para cada enfrentamiento
-          de la simulación.
-        </Text>
-      </View>
-
-      {ROUND_ORDER.map((round) => {
-        const matches = getMatches(round);
-
-        if (matches.length === 0) return null;
-
-        return (
-          <View key={round} style={styles.roundSection}>
-            <Text style={styles.roundTitle}>
-              {ROUND_NAMES[round].toUpperCase()}
+        {/* CONTINUAR TORNEO */}
+        {nextRound && (
+          <TouchableOpacity
+            style={styles.continueButton}
+            onPress={() => onContinueTournament(nextRound)}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.continueButtonTitle}>
+              CONTINUAR TORNEO →
             </Text>
 
-            {matches.map(renderProbabilityCard)}
+            <Text style={styles.continueButtonDescription}>
+              Simular la siguiente fase: {ROUND_NAMES[nextRound]}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {!nextRound && tournament.champion && (
+          <View style={styles.completedTournament}>
+            <Text style={styles.completedTournamentText}>
+              TORNEO FINALIZADO
+            </Text>
           </View>
-        );
-      })}
+        )}
 
-      <View style={styles.disclaimerCard}>
-        <Text style={styles.disclaimerTitle}>
-          SOBRE ESTA PREDICCIÓN
+        {/* CUADRO DE ELIMINACIÓN */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            CUADRO DE ELIMINACIÓN
+          </Text>
+
+          <Text style={styles.sectionDescription}>
+            Recorrido de las selecciones hasta la gran final.
+          </Text>
+        </View>
+
+        <ScrollView
+          horizontal
+          nestedScrollEnabled
+          showsHorizontalScrollIndicator
+          contentContainerStyle={styles.bracketScroll}
+        >
+          <View style={styles.bracketCanvas}>
+            {renderConnections(
+              0,
+              180,
+              MATCH_CENTERS.first,
+              MATCH_CENTERS.second,
+              'left'
+            )}
+
+            {renderConnections(
+              180,
+              360,
+              MATCH_CENTERS.second,
+              MATCH_CENTERS.third,
+              'left'
+            )}
+
+            {renderConnections(
+              360,
+              540,
+              MATCH_CENTERS.third,
+              MATCH_CENTERS.semi,
+              'left'
+            )}
+
+            {renderConnections(
+              1440,
+              1260,
+              MATCH_CENTERS.first,
+              MATCH_CENTERS.second,
+              'right'
+            )}
+
+            {renderConnections(
+              1260,
+              1080,
+              MATCH_CENTERS.second,
+              MATCH_CENTERS.third,
+              'right'
+            )}
+
+            {renderConnections(
+              1080,
+              900,
+              MATCH_CENTERS.third,
+              MATCH_CENTERS.semi,
+              'right'
+            )}
+
+            <View style={[styles.finalConnector, { left: 690 }]} />
+            <View style={[styles.finalConnector, { left: 900 }]} />
+
+            {renderBracketColumn(leftFirst, 0, MATCH_CENTERS.first)}
+            {renderBracketColumn(leftSecond, 180, MATCH_CENTERS.second)}
+            {renderBracketColumn(leftQuarter, 360, MATCH_CENTERS.third)}
+            {renderBracketColumn(leftSemi, 540, MATCH_CENTERS.semi)}
+
+            {renderBracketColumn(rightFirst, 1440, MATCH_CENTERS.first)}
+            {renderBracketColumn(rightSecond, 1260, MATCH_CENTERS.second)}
+            {renderBracketColumn(rightQuarter, 1080, MATCH_CENTERS.third)}
+            {renderBracketColumn(rightSemi, 900, MATCH_CENTERS.semi)}
+
+            {renderFinal()}
+          </View>
+        </ScrollView>
+
+        <Text style={styles.scrollHint}>
+          ← Desliza horizontalmente para recorrer el cuadro →
         </Text>
 
-        <Text style={styles.disclaimerText}>
-          Los resultados son estimaciones estadísticas basadas
-          en los registros históricos disponibles y 1.000
-          simulaciones por enfrentamiento. No representan una
-          garantía de los resultados reales.
-        </Text>
+        {/* CAMPEÓN */}
+        {tournament.champion && (
+          <View style={styles.championCard}>
+            <Text style={styles.championTrophy}>🏆</Text>
+
+            <Text style={styles.championLabel}>
+              CAMPEÓN PROYECTADO
+            </Text>
+
+            <Text style={styles.championName}>
+              {getTeamDisplayName(tournament.champion)}
+            </Text>
+          </View>
+        )}
+
+        {/* ANÁLISIS DE PROBABILIDADES */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>
+            ANÁLISIS DE PROBABILIDADES
+          </Text>
+
+          <Text style={styles.sectionDescription}>
+            Probabilidades estimadas para cada enfrentamiento
+            de la simulación.
+          </Text>
+        </View>
+
+        {ROUND_ORDER.map((round) => {
+          const matches = getMatches(round);
+
+          if (matches.length === 0) return null;
+
+          return (
+            <View key={round} style={styles.roundSection}>
+              <Text style={styles.roundTitle}>
+                {ROUND_NAMES[round].toUpperCase()}
+              </Text>
+
+              <View
+                style={[
+                  styles.probabilityGrid,
+                  {
+                    flexDirection: isMobile ? 'column' : 'row',
+                    flexWrap: 'wrap',
+                  },
+                ]}
+              >
+                {matches.map((match) => (
+                  <View
+                    key={match.id}
+                    style={{
+                      width: '100%',
+                      maxWidth: isMobile ? undefined : 520,
+                      flex: isMobile ? undefined : 1,
+                      minWidth: isMobile ? undefined : 280,
+                    }}
+                  >
+                    {renderProbabilityCard(match)}
+                  </View>
+                ))}
+              </View>
+            </View>
+          );
+        })}
+
+        {/* ACLARACIÓN */}
+        <View style={styles.disclaimerCard}>
+          <Text style={styles.disclaimerTitle}>
+            SOBRE ESTA PREDICCIÓN
+          </Text>
+
+          <Text style={styles.disclaimerText}>
+            Los resultados son estimaciones estadísticas basadas
+            en los registros históricos disponibles y 1.000
+            simulaciones por enfrentamiento. No representan una
+            garantía de los resultados reales.
+          </Text>
+        </View>
+
+        <TouchableOpacity
+          style={styles.backHomeButton}
+          onPress={onBack}
+          activeOpacity={0.85}
+        >
+          <Text style={styles.backHomeText}>
+            VOLVER AL MENÚ PRINCIPAL
+          </Text>
+        </TouchableOpacity>
       </View>
-
-      <TouchableOpacity
-        style={styles.backHomeButton}
-        onPress={onBack}
-      >
-        <Text style={styles.backHomeText}>
-          VOLVER AL MENÚ PRINCIPAL
-        </Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -710,9 +787,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#2A3A2E',
     marginBottom: 20,
+    gap: 10,
   },
   summaryItem: {
     alignItems: 'center',
+    flex: 1,
+    minWidth: 0,
   },
   summaryValue: {
     color: '#B9F66A',
@@ -724,6 +804,7 @@ const styles = StyleSheet.create({
     fontSize: 8,
     fontWeight: '800',
     marginTop: 5,
+    textAlign: 'center',
   },
   summaryDivider: {
     height: 35,
@@ -737,18 +818,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     alignItems: 'center',
     marginBottom: 25,
+    width: '100%',
   },
   continueButtonTitle: {
     color: '#101914',
     fontSize: 13,
     fontWeight: '900',
     letterSpacing: 1,
+    textAlign: 'center',
   },
   continueButtonDescription: {
     color: '#26382B',
     fontSize: 11,
     fontWeight: '700',
     marginTop: 6,
+    textAlign: 'center',
   },
   completedTournament: {
     backgroundColor: '#19251E',
@@ -767,6 +851,7 @@ const styles = StyleSheet.create({
   },
   sectionHeader: {
     marginBottom: 15,
+    marginTop: 8,
   },
   sectionTitle: {
     color: '#B9F66A',
@@ -816,6 +901,7 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     flex: 1,
+    minWidth: 0,
   },
   bracketScore: {
     color: '#F0F5EF',
@@ -923,6 +1009,7 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
     marginBottom: 28,
+    width: '100%',
   },
   championTrophy: {
     fontSize: 35,
@@ -933,6 +1020,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     letterSpacing: 2,
     marginTop: 9,
+    textAlign: 'center',
   },
   championName: {
     color: '#F0F5EF',
@@ -943,6 +1031,7 @@ const styles = StyleSheet.create({
   },
   roundSection: {
     marginTop: 17,
+    width: '100%',
   },
   roundTitle: {
     color: '#B9F66A',
@@ -951,6 +1040,10 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 10,
   },
+  probabilityGrid: {
+    width: '100%',
+    gap: 10,
+  },
   probabilityCard: {
     backgroundColor: '#19251E',
     borderWidth: 1,
@@ -958,10 +1051,13 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 15,
     marginBottom: 11,
+    width: '100%',
   },
   probabilityCardHeader: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     justifyContent: 'space-between',
+    gap: 8,
     marginBottom: 12,
   },
   probabilityMatchNumber: {
@@ -980,12 +1076,14 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginVertical: 5,
+    gap: 10,
   },
   probabilityTeamName: {
     color: '#DCE5DD',
     fontSize: 12,
     fontWeight: '700',
     flex: 1,
+    minWidth: 0,
   },
   probabilityValue: {
     color: '#F0F5EF',
@@ -1016,10 +1114,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: 10,
+    gap: 8,
   },
   drawText: {
     color: '#9AA79D',
     fontSize: 10,
+    flex: 1,
   },
   drawValue: {
     color: '#DCE5DD',
@@ -1037,6 +1137,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 17,
     marginTop: 25,
+    width: '100%',
   },
   disclaimerTitle: {
     color: '#B9F66A',
@@ -1056,11 +1157,13 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     alignItems: 'center',
     marginTop: 20,
+    width: '100%',
   },
   backHomeText: {
     color: '#101914',
     fontSize: 11,
     fontWeight: '900',
     letterSpacing: 1,
+    textAlign: 'center',
   },
 });

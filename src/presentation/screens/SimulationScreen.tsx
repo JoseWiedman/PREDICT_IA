@@ -8,6 +8,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  useWindowDimensions,
 } from 'react-native';
 
 import { FootballViewModel } from '../viewmodels/FootballViewModel';
@@ -26,6 +27,14 @@ interface SimulationScreenProps {
 export default function SimulationScreen({
   onBack,
 }: SimulationScreenProps) {
+  const { width } = useWindowDimensions();
+
+  const isMobile = width < 600;
+  const isTablet = width >= 600 && width < 1024;
+
+  const horizontalSpace = isMobile ? 18 : isTablet ? 32 : 45;
+  const titleSize = isMobile ? 30 : isTablet ? 36 : 40;
+
   const [teamA, setTeamA] = useState('Colombia');
   const [teamB, setTeamB] = useState('Argentina');
 
@@ -169,6 +178,7 @@ export default function SimulationScreen({
       <TouchableOpacity
         style={styles.selectorButton}
         onPress={() => openTeamSelector(index)}
+        activeOpacity={0.8}
       >
         <View style={styles.selectorTextContainer}>
           <Text style={styles.selectedTeamName}>
@@ -219,265 +229,281 @@ export default function SimulationScreen({
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[
+        styles.content,
+        {
+          paddingHorizontal: horizontalSpace,
+          paddingTop: isMobile ? 22 : 35,
+        },
+      ]}
       keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
     >
-      <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backButton}>
-          <Text style={styles.backText}>← Volver</Text>
-        </TouchableOpacity>
+      <View style={styles.page}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={onBack} style={styles.backButton}>
+            <Text style={styles.backText}>← Volver</Text>
+          </TouchableOpacity>
 
-        <Text style={styles.brand}>PREDICTIA</Text>
-        <Text style={styles.subtitle}>MODELO DE PREDICCIÓN</Text>
-      </View>
+          <Text style={styles.brand}>PREDICTIA</Text>
+          <Text style={styles.subtitle}>MODELO DE PREDICCIÓN</Text>
+        </View>
 
-      <View style={styles.titleContainer}>
-        <Text style={styles.title}>Simulación</Text>
+        <View style={styles.titleContainer}>
+          <Text style={[styles.title, { fontSize: titleSize }]}>
+            Simulación
+          </Text>
 
-        <Text style={styles.description}>
-          Analiza un enfrentamiento utilizando datos históricos y
-          simulaciones probabilísticas.
-        </Text>
-      </View>
+          <Text style={styles.description}>
+            Analiza un enfrentamiento utilizando datos históricos y
+            simulaciones probabilísticas.
+          </Text>
+        </View>
 
-      <View style={styles.formCard}>
-        <Text style={styles.sectionTitle}>
-          CONFIGURAR ENFRENTAMIENTO
-        </Text>
+        <View
+          style={[
+            styles.formCard,
+            !isMobile && styles.desktopCard,
+          ]}
+        >
+          <Text style={styles.sectionTitle}>
+            CONFIGURAR ENFRENTAMIENTO
+          </Text>
 
-        {loadingTeams ? (
-          <View style={styles.loadingTeamsContainer}>
-            <ActivityIndicator color="#B9F66A" />
+          {loadingTeams ? (
+            <View style={styles.loadingTeamsContainer}>
+              <ActivityIndicator color="#B9F66A" />
 
-            <Text style={styles.loadingTeamsText}>
-              Cargando selecciones disponibles...
+              <Text style={styles.loadingTeamsText}>
+                Cargando selecciones disponibles...
+              </Text>
+            </View>
+          ) : (
+            <>
+              {renderTeamSelector('EQUIPO LOCAL / A', teamA, 0)}
+
+              <View style={styles.vsContainer}>
+                <View style={styles.vsLine} />
+                <Text style={styles.vsText}>VS</Text>
+                <View style={styles.vsLine} />
+              </View>
+
+              {renderTeamSelector('EQUIPO VISITANTE / B', teamB, 1)}
+
+              <View style={styles.iterationsContainer}>
+                <Text style={styles.iterationsLabel}>SIMULACIONES</Text>
+                <Text style={styles.iterationsValue}>1.000</Text>
+              </View>
+
+              <TouchableOpacity
+                style={[
+                  styles.simulateButton,
+                  (loading || !availableTeams.length) &&
+                    styles.disabledButton,
+                ]}
+                onPress={handleSimulation}
+                disabled={loading || !availableTeams.length}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#101914" />
+                ) : (
+                  <Text style={styles.simulateButtonText}>
+                    EJECUTAR SIMULACIÓN →
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
+
+        {activeTeamIndex !== null && (
+          <View style={styles.dropdownCard}>
+            <View style={styles.dropdownHeader}>
+              <Text style={styles.dropdownTitle}>
+                {activeTeamIndex === 0
+                  ? 'Seleccionar equipo local'
+                  : 'Seleccionar equipo visitante'}
+              </Text>
+
+              <TouchableOpacity onPress={closeTeamSelector}>
+                <Text style={styles.closeButton}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              style={styles.searchInput}
+              value={searchText}
+              onChangeText={setSearchText}
+              placeholder="Buscar selección..."
+              placeholderTextColor="#68756C"
+              autoCapitalize="words"
+              autoFocus
+            />
+
+            {filteredTeams.length > 0 ? (
+              filteredTeams.map((team) => (
+                <TouchableOpacity
+                  key={team}
+                  style={styles.teamOption}
+                  onPress={() => selectTeam(team)}
+                >
+                  <Text style={styles.teamOptionName}>
+                    {getTeamDisplayName(team)}
+                  </Text>
+
+                  <Text style={styles.teamOptionArrow}>›</Text>
+                </TouchableOpacity>
+              ))
+            ) : (
+              <Text style={styles.emptyResults}>
+                No se encontraron selecciones.
+              </Text>
+            )}
+
+            <Text style={styles.dropdownFooter}>
+              Se muestran máximo 12 resultados.
             </Text>
           </View>
-        ) : (
-          <>
-            {renderTeamSelector('EQUIPO LOCAL / A', teamA, 0)}
+        )}
 
-            <View style={styles.vsContainer}>
-              <View style={styles.vsLine} />
-              <Text style={styles.vsText}>VS</Text>
-              <View style={styles.vsLine} />
-            </View>
+        {errorMessage !== '' && (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{errorMessage}</Text>
+          </View>
+        )}
 
-            {renderTeamSelector('EQUIPO VISITANTE / B', teamB, 1)}
+        {loading && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#B9F66A" />
 
-            <View style={styles.iterationsContainer}>
-              <Text style={styles.iterationsLabel}>SIMULACIONES</Text>
-              <Text style={styles.iterationsValue}>1.000</Text>
-            </View>
+            <Text style={styles.loadingText}>
+              Analizando datos y ejecutando simulaciones...
+            </Text>
+          </View>
+        )}
 
-            <TouchableOpacity
-              style={[
-                styles.simulateButton,
-                (loading || !availableTeams.length) &&
-                  styles.disabledButton,
-              ]}
-              onPress={handleSimulation}
-              disabled={loading || !availableTeams.length}
-            >
-              {loading ? (
-                <ActivityIndicator color="#101914" />
-              ) : (
-                <Text style={styles.simulateButtonText}>
-                  EJECUTAR SIMULACIÓN →
+        {result && (
+          <View style={styles.resultsContainer}>
+            <Text style={styles.resultsTitle}>
+              RESULTADOS DEL MODELO
+            </Text>
+
+            <View style={styles.resultCard}>
+              <Text style={styles.cardSubtitle}>ENFRENTAMIENTO</Text>
+
+              <View style={styles.teamsRow}>
+                <Text style={styles.teamName}>
+                  {getTeamDisplayName(result.teamA)}
                 </Text>
+
+                <Text style={styles.teamVs}>VS</Text>
+
+                <Text style={styles.teamName}>
+                  {getTeamDisplayName(result.teamB)}
+                </Text>
+              </View>
+
+              <View style={styles.scoreContainer}>
+                <Text style={styles.score}>
+                  {result.expectedGoalsA.toFixed(2)}
+                </Text>
+
+                <Text style={styles.scoreSeparator}>-</Text>
+
+                <Text style={styles.score}>
+                  {result.expectedGoalsB.toFixed(2)}
+                </Text>
+              </View>
+
+              <Text style={styles.scoreDescription}>
+                Goles esperados del modelo
+              </Text>
+            </View>
+
+            <View style={styles.resultCard}>
+              <Text style={styles.cardSubtitle}>
+                PROBABILIDADES DE RESULTADO
+              </Text>
+
+              {renderProbability(
+                `Victoria ${getTeamDisplayName(result.teamA)}`,
+                result.teamAProbability,
+                '#B9F66A'
               )}
-            </TouchableOpacity>
-          </>
+
+              {renderProbability(
+                'Empate',
+                result.drawProbability,
+                '#F4C96B'
+              )}
+
+              {renderProbability(
+                `Victoria ${getTeamDisplayName(result.teamB)}`,
+                result.teamBProbability,
+                '#72B7F2'
+              )}
+
+              <Text style={styles.simulationCount}>
+                Basado en {result.iterations.toLocaleString('es-CO')} simulaciones
+              </Text>
+            </View>
+
+            <View style={styles.resultCard}>
+              <Text style={styles.cardSubtitle}>
+                MARCADOR MÁS FRECUENTE
+              </Text>
+
+              <Text style={styles.frequentScore}>
+                {result.mostFrequentScore}
+              </Text>
+
+              <Text style={styles.scoreDescription}>
+                Resultado que más se repitió durante las simulaciones.
+              </Text>
+            </View>
+
+            <View style={styles.resultCard}>
+              <Text style={styles.cardSubtitle}>
+                RESUMEN DE SIMULACIONES
+              </Text>
+
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>
+                  Victorias {getTeamDisplayName(result.teamA)}
+                </Text>
+
+                <Text style={styles.summaryValue}>
+                  {result.teamAWins.toLocaleString('es-CO')}
+                </Text>
+              </View>
+
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Empates</Text>
+
+                <Text style={styles.summaryValue}>
+                  {result.draws.toLocaleString('es-CO')}
+                </Text>
+              </View>
+
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>
+                  Victorias {getTeamDisplayName(result.teamB)}
+                </Text>
+
+                <Text style={styles.summaryValue}>
+                  {result.teamBWins.toLocaleString('es-CO')}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.disclaimer}>
+              Estos resultados son estimaciones estadísticas basadas en
+              los datos históricos disponibles. No representan una garantía
+              del resultado real de un partido.
+            </Text>
+          </View>
         )}
       </View>
-
-      {activeTeamIndex !== null && (
-        <View style={styles.dropdownCard}>
-          <View style={styles.dropdownHeader}>
-            <Text style={styles.dropdownTitle}>
-              {activeTeamIndex === 0
-                ? 'Seleccionar equipo local'
-                : 'Seleccionar equipo visitante'}
-            </Text>
-
-            <TouchableOpacity onPress={closeTeamSelector}>
-              <Text style={styles.closeButton}>✕</Text>
-            </TouchableOpacity>
-          </View>
-
-          <TextInput
-            style={styles.searchInput}
-            value={searchText}
-            onChangeText={setSearchText}
-            placeholder="Buscar selección..."
-            placeholderTextColor="#68756C"
-            autoCapitalize="words"
-            autoFocus
-          />
-
-          {filteredTeams.length > 0 ? (
-            filteredTeams.map((team) => (
-              <TouchableOpacity
-                key={team}
-                style={styles.teamOption}
-                onPress={() => selectTeam(team)}
-              >
-                <Text style={styles.teamOptionName}>
-                  {getTeamDisplayName(team)}
-                </Text>
-
-                <Text style={styles.teamOptionArrow}>›</Text>
-              </TouchableOpacity>
-            ))
-          ) : (
-            <Text style={styles.emptyResults}>
-              No se encontraron selecciones.
-            </Text>
-          )}
-
-          <Text style={styles.dropdownFooter}>
-            Se muestran máximo 12 resultados.
-          </Text>
-        </View>
-      )}
-
-      {errorMessage !== '' && (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{errorMessage}</Text>
-        </View>
-      )}
-
-      {loading && (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#B9F66A" />
-
-          <Text style={styles.loadingText}>
-            Analizando datos y ejecutando simulaciones...
-          </Text>
-        </View>
-      )}
-
-      {result && (
-        <View style={styles.resultsContainer}>
-          <Text style={styles.resultsTitle}>
-            RESULTADOS DEL MODELO
-          </Text>
-
-          <View style={styles.resultCard}>
-            <Text style={styles.cardSubtitle}>ENFRENTAMIENTO</Text>
-
-            <View style={styles.teamsRow}>
-              <Text style={styles.teamName}>
-                {getTeamDisplayName(result.teamA)}
-              </Text>
-
-              <Text style={styles.teamVs}>VS</Text>
-
-              <Text style={styles.teamName}>
-                {getTeamDisplayName(result.teamB)}
-              </Text>
-            </View>
-
-            <View style={styles.scoreContainer}>
-              <Text style={styles.score}>
-                {result.expectedGoalsA.toFixed(2)}
-              </Text>
-
-              <Text style={styles.scoreSeparator}>-</Text>
-
-              <Text style={styles.score}>
-                {result.expectedGoalsB.toFixed(2)}
-              </Text>
-            </View>
-
-            <Text style={styles.scoreDescription}>
-              Goles esperados del modelo
-            </Text>
-          </View>
-
-          <View style={styles.resultCard}>
-            <Text style={styles.cardSubtitle}>
-              PROBABILIDADES DE RESULTADO
-            </Text>
-
-            {renderProbability(
-              `Victoria ${getTeamDisplayName(result.teamA)}`,
-              result.teamAProbability,
-              '#B9F66A'
-            )}
-
-            {renderProbability(
-              'Empate',
-              result.drawProbability,
-              '#F4C96B'
-            )}
-
-            {renderProbability(
-              `Victoria ${getTeamDisplayName(result.teamB)}`,
-              result.teamBProbability,
-              '#72B7F2'
-            )}
-
-            <Text style={styles.simulationCount}>
-              Basado en {result.iterations.toLocaleString('es-CO')} simulaciones
-            </Text>
-          </View>
-
-          <View style={styles.resultCard}>
-            <Text style={styles.cardSubtitle}>
-              MARCADOR MÁS FRECUENTE
-            </Text>
-
-            <Text style={styles.frequentScore}>
-              {result.mostFrequentScore}
-            </Text>
-
-            <Text style={styles.scoreDescription}>
-              Resultado que más se repitió durante las simulaciones.
-            </Text>
-          </View>
-
-          <View style={styles.resultCard}>
-            <Text style={styles.cardSubtitle}>
-              RESUMEN DE SIMULACIONES
-            </Text>
-
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>
-                Victorias {getTeamDisplayName(result.teamA)}
-              </Text>
-
-              <Text style={styles.summaryValue}>
-                {result.teamAWins.toLocaleString('es-CO')}
-              </Text>
-            </View>
-
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Empates</Text>
-
-              <Text style={styles.summaryValue}>
-                {result.draws.toLocaleString('es-CO')}
-              </Text>
-            </View>
-
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>
-                Victorias {getTeamDisplayName(result.teamB)}
-              </Text>
-
-              <Text style={styles.summaryValue}>
-                {result.teamBWins.toLocaleString('es-CO')}
-              </Text>
-            </View>
-          </View>
-
-          <Text style={styles.disclaimer}>
-            Estos resultados son estimaciones estadísticas basadas en
-            los datos históricos disponibles. No representan una garantía
-            del resultado real de un partido.
-          </Text>
-        </View>
-      )}
     </ScrollView>
   );
 }
@@ -488,8 +514,14 @@ const styles = StyleSheet.create({
     backgroundColor: '#101914',
   },
   content: {
-    padding: 22,
+    flexGrow: 1,
+    alignItems: 'center',
     paddingBottom: 45,
+  },
+  page: {
+    width: '100%',
+    maxWidth: 1050,
+    alignSelf: 'center',
   },
   header: {
     marginBottom: 35,
@@ -520,7 +552,6 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#F0F5EF',
-    fontSize: 32,
     fontWeight: '800',
   },
   description: {
@@ -528,6 +559,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 21,
     marginTop: 10,
+    maxWidth: 650,
   },
   formCard: {
     backgroundColor: '#19251E',
@@ -535,6 +567,11 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: '#2A3A2E',
+    width: '100%',
+  },
+  desktopCard: {
+    maxWidth: 650,
+    alignSelf: 'center',
   },
   sectionTitle: {
     color: '#B9F66A',
@@ -563,11 +600,13 @@ const styles = StyleSheet.create({
   },
   selectorTextContainer: {
     flex: 1,
+    minWidth: 0,
   },
   selectedTeamName: {
     color: '#F0F5EF',
     fontSize: 15,
     fontWeight: '700',
+    flexShrink: 1,
   },
   selectorHint: {
     color: '#68756C',
@@ -627,6 +666,7 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontSize: 12,
     letterSpacing: 1,
+    textAlign: 'center',
   },
   loadingTeamsContainer: {
     alignItems: 'center',
@@ -636,6 +676,7 @@ const styles = StyleSheet.create({
     color: '#A8B5AA',
     fontSize: 12,
     marginTop: 12,
+    textAlign: 'center',
   },
   dropdownCard: {
     backgroundColor: '#19251E',
@@ -644,17 +685,22 @@ const styles = StyleSheet.create({
     marginTop: 15,
     borderWidth: 1,
     borderColor: '#2A3A2E',
+    width: '100%',
+    maxWidth: 650,
+    alignSelf: 'center',
   },
   dropdownHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 15,
+    gap: 10,
   },
   dropdownTitle: {
     color: '#B9F66A',
     fontSize: 13,
     fontWeight: '900',
+    flex: 1,
   },
   closeButton: {
     color: '#A4AEA7',
@@ -684,6 +730,7 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 14,
     fontWeight: '600',
+    flex: 1,
   },
   teamOptionArrow: {
     color: '#B9F66A',
@@ -708,6 +755,9 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     padding: 14,
     marginTop: 18,
+    width: '100%',
+    maxWidth: 650,
+    alignSelf: 'center',
   },
   errorText: {
     color: '#FF9999',
@@ -726,6 +776,9 @@ const styles = StyleSheet.create({
   resultsContainer: {
     marginTop: 35,
     gap: 16,
+    width: '100%',
+    maxWidth: 900,
+    alignSelf: 'center',
   },
   resultsTitle: {
     color: '#B9F66A',
@@ -740,6 +793,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderWidth: 1,
     borderColor: '#2A3A2E',
+    width: '100%',
   },
   cardSubtitle: {
     color: '#829087',

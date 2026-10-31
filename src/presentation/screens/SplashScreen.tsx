@@ -5,12 +5,37 @@ import {
   Text,
   StyleSheet,
   StatusBar,
+  useWindowDimensions,
 } from 'react-native';
 
 export default function SplashScreen() {
+  const { width, height } = useWindowDimensions();
+
+  const isMobile = width < 600;
+  const isTablet = width >= 600 && width < 1024;
+  const isSmallHeight = height < 700;
+
+  const horizontalSpace = isMobile ? 22 : isTablet ? 40 : 55;
+
+  const titleSize = isMobile
+    ? width < 380 ? 34 : 39
+    : isTablet ? 45 : 52;
+
+  const pitchHeight = isMobile ? 135 : isTablet ? 165 : 185;
+
   return (
-    <View style={styles.container}>
+    <View
+      style={[
+        styles.container,
+        {
+          paddingHorizontal: horizontalSpace,
+          paddingTop: isMobile ? 25 : 35,
+          paddingBottom: isMobile ? 18 : 24,
+        },
+      ]}
+    >
       <StatusBar barStyle="light-content" />
+
       {/* Encabezado */}
       <View style={styles.header}>
         <View style={styles.brandMark}>
@@ -24,12 +49,30 @@ export default function SplashScreen() {
       </View>
 
       {/* Contenido principal */}
-      <View style={styles.mainContent}>
+      <View
+        style={[
+          styles.mainContent,
+          {
+            maxWidth: isMobile ? 450 : 600,
+            transform: [
+              { scale: isSmallHeight && isMobile ? 0.94 : 1 },
+            ],
+          },
+        ]}
+      >
         <Text style={styles.overline}>
           FOOTBALL DATA & ANALYTICS
         </Text>
 
-        <Text style={styles.title}>
+        <Text
+          style={[
+            styles.title,
+            {
+              fontSize: titleSize,
+              lineHeight: titleSize * 1.18,
+            },
+          ]}
+        >
           El fútbol,{'\n'}
           <Text style={styles.titleAccent}>
             desde los datos.
@@ -43,7 +86,12 @@ export default function SplashScreen() {
         </Text>
 
         {/* Representación de cancha */}
-        <View style={styles.pitch}>
+        <View
+          style={[
+            styles.pitch,
+            { height: pitchHeight },
+          ]}
+        >
           <View style={styles.pitchLineVertical} />
           <View style={styles.pitchLineHorizontal} />
           <View style={styles.centerCircle} />
@@ -60,7 +108,14 @@ export default function SplashScreen() {
         </View>
 
         {/* Características */}
-        <View style={styles.features}>
+        <View
+          style={[
+            styles.features,
+            {
+              marginTop: isMobile ? 24 : 32,
+            },
+          ]}
+        >
           <View style={styles.feature}>
             <Text style={styles.featureNumber}>01</Text>
             <Text style={styles.featureText}>DATOS</Text>
@@ -100,9 +155,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#101914',
-    paddingHorizontal: 28,
-    paddingTop: 35,
-    paddingBottom: 24,
     justifyContent: 'space-between',
   },
 
@@ -110,6 +162,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    width: '100%',
+    maxWidth: 1100,
+    alignSelf: 'center',
   },
 
   brandMark: {
@@ -154,7 +209,6 @@ const styles = StyleSheet.create({
 
   mainContent: {
     width: '100%',
-    maxWidth: 450,
     alignSelf: 'center',
   },
 
@@ -168,9 +222,7 @@ const styles = StyleSheet.create({
 
   title: {
     color: '#FFFFFF',
-    fontSize: 39,
     fontWeight: '800',
-    lineHeight: 46,
     letterSpacing: -1.5,
   },
 
@@ -183,12 +235,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 23,
     marginTop: 19,
-    maxWidth: 330,
+    maxWidth: 380,
   },
 
   pitch: {
-    height: 155,
-    marginTop: 32,
+    width: '100%',
+    marginTop: 28,
     backgroundColor: '#1C2C21',
     borderWidth: 1,
     borderColor: '#425B3C',
@@ -224,7 +276,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 0,
     width: 42,
-    height: 75,
+    height: '48%',
     borderWidth: 1,
     borderColor: '#58744B',
     borderLeftWidth: 0,
@@ -243,7 +295,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     width: 42,
-    height: 75,
+    height: '48%',
     borderWidth: 1,
     borderColor: '#58744B',
     borderRightWidth: 0,
@@ -272,7 +324,6 @@ const styles = StyleSheet.create({
   features: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 30,
   },
 
   feature: {
@@ -294,7 +345,7 @@ const styles = StyleSheet.create({
 
   footer: {
     width: '100%',
-    maxWidth: 450,
+    maxWidth: 1100,
     alignSelf: 'center',
   },
 
@@ -307,6 +358,8 @@ const styles = StyleSheet.create({
   footerContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: 8,
   },
 
   footerText: {
