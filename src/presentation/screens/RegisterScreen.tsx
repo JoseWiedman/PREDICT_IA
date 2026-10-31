@@ -22,16 +22,20 @@ import { auth } from '../../config/firebaseConfig';
 
 interface RegisterScreenProps {
   onBack: () => void;
+  onRegisterStart: () => void;
   onRegisterSuccess: (
     email: string,
     password: string,
     name: string
   ) => void;
+  onRegisterEnd: () => void;
 }
 
 export default function RegisterScreen({
   onBack,
+  onRegisterStart,
   onRegisterSuccess,
+  onRegisterEnd,
 }: RegisterScreenProps) {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -51,7 +55,6 @@ export default function RegisterScreen({
       return;
     }
 
-    // Validar formato del correo electrónico.
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       Alert.alert(
         'Correo inválido',
@@ -81,45 +84,44 @@ export default function RegisterScreen({
     try {
       setLoading(true);
 
-      // Crear el usuario en Firebase Authentication.
+      // Avisar a App.tsx que el registro ha comenzado.
+      onRegisterStart();
+
+      // Crear el usuario en Firebase.
       const userCredential = await createUserWithEmailAndPassword(
         auth,
         cleanEmail,
         password
       );
 
-      console.log('Usuario creado:', userCredential.user.uid);
+      console.log(
+        'Usuario creado:',
+        userCredential.user.uid
+      );
 
-      // Guardar el nombre completo en Firebase.
+      // Guardar el nombre completo.
       await updateProfile(userCredential.user, {
         displayName: cleanName,
       });
 
-      console.log('Nombre enviado a Firebase:', cleanName);
-      console.log(
-        'Nombre guardado en el usuario:',
-        userCredential.user.displayName
-      );
-
-      // Recargar el perfil para obtener los datos actualizados.
+      // Actualizar el perfil desde Firebase.
       await userCredential.user.reload();
 
-      // Consultar el usuario actualizado.
       const updatedUser = auth.currentUser;
 
       console.log(
-        'Nombre después de recargar:',
+        'Nombre guardado en Firebase:',
         updatedUser?.displayName
       );
 
-      // Verificar que Firebase haya guardado el nombre.
+      // Verificar que el nombre se haya guardado correctamente.
       if (updatedUser?.displayName !== cleanName) {
         throw new Error(
           'Firebase no confirmó la actualización del nombre.'
         );
       }
 
-      // Enviar los datos al componente principal.
+      // Informar el registro exitoso.
       onRegisterSuccess(
         cleanEmail,
         password,
@@ -169,6 +171,8 @@ export default function RegisterScreen({
       Alert.alert('Error de registro', message);
 
     } finally {
+      // Avisar que el proceso de registro terminó.
+      onRegisterEnd();
       setLoading(false);
     }
   };

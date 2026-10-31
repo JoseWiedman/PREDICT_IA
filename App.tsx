@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 import {
   ActivityIndicator,
@@ -66,6 +66,10 @@ export default function App() {
     () => new TournamentViewModel()
   );
 
+  // Controlar el proceso de registro y evitar eventos duplicados.
+  const isRegisteringRef = useRef(false);
+  const handledUserUidRef = useRef<string | null>(null);
+
   // Recuperar torneo guardado después de autenticar al usuario.
   const handleLoginSuccess = async (name: string) => {
     setUserName(name);
@@ -94,12 +98,47 @@ export default function App() {
     }
   };
 
+  // Indicar que el registro está comenzando.
+  const handleRegisterStart = () => {
+    isRegisteringRef.current = true;
+  };
+
+  // Finalizar el estado de registro.
+  const handleRegisterEnd = () => {
+    isRegisteringRef.current = false;
+  };
+
+  // Recibir el nombre completo desde RegisterScreen.
+  const handleRegisterSuccess = async (
+    _email: string,
+    _password: string,
+    name: string
+  ) => {
+    const currentUser = auth.currentUser;
+
+    if (currentUser) {
+      handledUserUidRef.current = currentUser.uid;
+    }
+
+    await handleLoginSuccess(name);
+  };
+
   // Firebase controla la sesión y recupera el nombre actualizado.
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(
       auth,
       async (user) => {
         if (user) {
+          // No procesar el usuario mientras se está registrando.
+          if (isRegisteringRef.current) {
+            return;
+          }
+
+          // Evitar procesar nuevamente un usuario ya atendido.
+          if (handledUserUidRef.current === user.uid) {
+            return;
+          }
+
           try {
             // Actualizar los datos del usuario desde Firebase.
             await user.reload();
@@ -122,6 +161,9 @@ export default function App() {
               name
             );
 
+            handledUserUidRef.current =
+              updatedUser?.uid ?? user.uid;
+
             await handleLoginSuccess(name);
           } catch (error) {
             console.error(
@@ -134,9 +176,13 @@ export default function App() {
               user.email?.split('@')[0] ||
               'Usuario';
 
+            handledUserUidRef.current = user.uid;
+
             await handleLoginSuccess(name);
           }
         } else {
+          handledUserUidRef.current = null;
+
           setUserName('');
           setTournament(null);
           setCurrentScreen('splash');
@@ -147,17 +193,6 @@ export default function App() {
 
     return unsubscribe;
   }, []);
-
-  // Recibir el nombre completo desde RegisterScreen.
-  const handleRegisterSuccess = (
-    _email: string,
-    _password: string,
-    name: string
-  ) => {
-    setUserName(name);
-    setInitialEmail('');
-    setInitialPassword('');
-  };
 
   // Cerrar sesión en Firebase sin eliminar el torneo guardado.
   const handleLogout = async () => {
@@ -352,7 +387,9 @@ export default function App() {
       {currentScreen === 'register' && (
         <RegisterScreen
           onBack={() => setCurrentScreen('login')}
+          onRegisterStart={handleRegisterStart}
           onRegisterSuccess={handleRegisterSuccess}
+          onRegisterEnd={handleRegisterEnd}
         />
       )}
 
