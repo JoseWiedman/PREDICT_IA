@@ -25,7 +25,6 @@ export default function HomeScreen({
 }: HomeScreenProps) {
   const { width } = useWindowDimensions();
 
-  // Adaptación según el tamaño de pantalla.
   const isMobile = width < 600;
   const isTablet = width >= 600 && width < 1024;
 
@@ -200,65 +199,61 @@ export default function HomeScreen({
             style={[
               styles.indicators,
               responsive.horizontal,
-              { gap: isMobile ? 9 : 10 },
+              {
+                gap: isMobile ? 7 : 12,
+              },
             ]}
           >
-            <View
-              style={[
-                styles.indicatorCard,
-                {
-                  width: isMobile ? '48%' : isTablet ? '31%' : undefined,
-                  flex: isMobile || isTablet ? 0 : 1,
-                },
-              ]}
-            >
+            <View style={styles.indicatorCard}>
               <Text style={styles.indicatorIcon}>▤</Text>
 
-              <Text style={styles.indicatorTitle}>
+              <Text
+                style={styles.indicatorTitle}
+                numberOfLines={2}
+              >
                 Datos históricos
               </Text>
 
-              <Text style={styles.indicatorDescription}>
+              <Text
+                style={styles.indicatorDescription}
+                numberOfLines={2}
+              >
                 Resultados internacionales
               </Text>
             </View>
 
-            <View
-              style={[
-                styles.indicatorCard,
-                {
-                  width: isMobile ? '48%' : isTablet ? '31%' : undefined,
-                  flex: isMobile || isTablet ? 0 : 1,
-                },
-              ]}
-            >
+            <View style={styles.indicatorCard}>
               <Text style={styles.indicatorIcon}>◉</Text>
 
-              <Text style={styles.indicatorTitle}>
+              <Text
+                style={styles.indicatorTitle}
+                numberOfLines={2}
+              >
                 Monte Carlo
               </Text>
 
-              <Text style={styles.indicatorDescription}>
+              <Text
+                style={styles.indicatorDescription}
+                numberOfLines={2}
+              >
                 Simulación de escenarios
               </Text>
             </View>
 
-            <View
-              style={[
-                styles.indicatorCard,
-                {
-                  width: isMobile ? '100%' : isTablet ? '31%' : undefined,
-                  flex: isMobile || isTablet ? 0 : 1,
-                },
-              ]}
-            >
+            <View style={styles.indicatorCard}>
               <Text style={styles.indicatorIcon}>🏆</Text>
 
-              <Text style={styles.indicatorTitle}>
+              <Text
+                style={styles.indicatorTitle}
+                numberOfLines={2}
+              >
                 Torneos
               </Text>
 
-              <Text style={styles.indicatorDescription}>
+              <Text
+                style={styles.indicatorDescription}
+                numberOfLines={2}
+              >
                 Cuadros de eliminación
               </Text>
             </View>
@@ -677,12 +672,14 @@ const styles = StyleSheet.create({
 
   indicators: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexWrap: 'nowrap',
     gap: 10,
     marginTop: 18,
+    width: '100%',
   },
 
   indicatorCard: {
+    flex: 1,
     minWidth: 0,
     backgroundColor: '#19251E',
     borderRadius: 12,
