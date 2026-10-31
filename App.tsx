@@ -12,7 +12,11 @@ import {
   View,
 } from 'react-native';
 
-import { onAuthStateChanged, signOut } from 'firebase/auth';
+import {
+  onAuthStateChanged,
+  signOut,
+} from 'firebase/auth';
+
 import { auth } from './src/config/firebaseConfig';
 
 import SplashScreen from './src/presentation/screens/SplashScreen';
@@ -90,28 +94,61 @@ export default function App() {
     }
   };
 
-  // Firebase controla automáticamente el estado de autenticación.
+  // Firebase controla la sesión y recupera el nombre actualizado.
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const name =
-          user.displayName ||
-          user.email?.split('@')[0] ||
-          'Usuario';
+    const unsubscribe = onAuthStateChanged(
+      auth,
+      async (user) => {
+        if (user) {
+          try {
+            // Actualizar los datos del usuario desde Firebase.
+            await user.reload();
 
-        await handleLoginSuccess(name);
-      } else {
-        setUserName('');
-        setTournament(null);
-        setCurrentScreen('splash');
-        setIsCheckingSession(false);
+            // Obtener el usuario actualizado.
+            const updatedUser = auth.currentUser;
+
+            const name =
+              updatedUser?.displayName ||
+              updatedUser?.email?.split('@')[0] ||
+              'Usuario';
+
+            console.log(
+              'Usuario autenticado:',
+              updatedUser?.email
+            );
+
+            console.log(
+              'Nombre recuperado desde Firebase:',
+              name
+            );
+
+            await handleLoginSuccess(name);
+          } catch (error) {
+            console.error(
+              'Error recuperando el usuario:',
+              error
+            );
+
+            const name =
+              user.displayName ||
+              user.email?.split('@')[0] ||
+              'Usuario';
+
+            await handleLoginSuccess(name);
+          }
+        } else {
+          setUserName('');
+          setTournament(null);
+          setCurrentScreen('splash');
+          setIsCheckingSession(false);
+        }
       }
-    });
+    );
 
     return unsubscribe;
   }, []);
 
-  // Recibir el nombre completo enviado desde RegisterScreen.
+  // Recibir el nombre completo desde RegisterScreen.
   const handleRegisterSuccess = (
     _email: string,
     _password: string,
@@ -271,7 +308,10 @@ export default function App() {
   if (isCheckingSession) {
     return (
       <View style={styles.sessionLoading}>
-        <ActivityIndicator size="large" color="#B9F66A" />
+        <ActivityIndicator
+          size="large"
+          color="#B9F66A"
+        />
 
         <Text style={styles.sessionLoadingText}>
           VERIFICANDO SESIÓN...
@@ -354,7 +394,9 @@ export default function App() {
 
             <TouchableOpacity
               style={styles.tournamentButton}
-              onPress={() => setCurrentScreen('tournamentSetup')}
+              onPress={() =>
+                setCurrentScreen('tournamentSetup')
+              }
               disabled={isTournamentLoading}
             >
               <Text style={styles.tournamentButtonText}>
@@ -395,7 +437,10 @@ export default function App() {
       {isTournamentLoading && (
         <View style={styles.loadingOverlay}>
           <View style={styles.loadingCard}>
-            <ActivityIndicator size="large" color="#B9F66A" />
+            <ActivityIndicator
+              size="large"
+              color="#B9F66A"
+            />
 
             <Text style={styles.loadingTitle}>
               PROCESANDO TORNEO

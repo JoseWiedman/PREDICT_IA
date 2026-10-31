@@ -51,6 +51,7 @@ export default function RegisterScreen({
       return;
     }
 
+    // Validar formato del correo electrónico.
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
       Alert.alert(
         'Correo inválido',
@@ -87,12 +88,38 @@ export default function RegisterScreen({
         password
       );
 
-      // Guardar el nombre completo en el perfil de Firebase.
+      console.log('Usuario creado:', userCredential.user.uid);
+
+      // Guardar el nombre completo en Firebase.
       await updateProfile(userCredential.user, {
         displayName: cleanName,
       });
 
-      // Enviar el nombre al componente principal.
+      console.log('Nombre enviado a Firebase:', cleanName);
+      console.log(
+        'Nombre guardado en el usuario:',
+        userCredential.user.displayName
+      );
+
+      // Recargar el perfil para obtener los datos actualizados.
+      await userCredential.user.reload();
+
+      // Consultar el usuario actualizado.
+      const updatedUser = auth.currentUser;
+
+      console.log(
+        'Nombre después de recargar:',
+        updatedUser?.displayName
+      );
+
+      // Verificar que Firebase haya guardado el nombre.
+      if (updatedUser?.displayName !== cleanName) {
+        throw new Error(
+          'Firebase no confirmó la actualización del nombre.'
+        );
+      }
+
+      // Enviar los datos al componente principal.
       onRegisterSuccess(
         cleanEmail,
         password,
@@ -106,10 +133,12 @@ export default function RegisterScreen({
 
     } catch (error: any) {
       console.error('Error en el registro:', error);
+      console.error('Código del error:', error?.code);
 
-      let message = 'No fue posible crear la cuenta. Intenta nuevamente.';
+      let message =
+        'No fue posible completar el registro. Intenta nuevamente.';
 
-      switch (error.code) {
+      switch (error?.code) {
         case 'auth/email-already-in-use':
           message = 'Este correo electrónico ya está registrado.';
           break;
@@ -127,11 +156,13 @@ export default function RegisterScreen({
           break;
 
         case 'auth/operation-not-allowed':
-          message = 'El registro por correo y contraseña no está habilitado en Firebase.';
+          message =
+            'El registro por correo y contraseña no está habilitado en Firebase.';
           break;
 
         case 'auth/too-many-requests':
-          message = 'Se han realizado demasiados intentos. Intenta más tarde.';
+          message =
+            'Se han realizado demasiados intentos. Intenta más tarde.';
           break;
       }
 
