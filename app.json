@@ -1,6 +1,10 @@
+
 {
   "expo": {
     "name": "PredictFutbolIA",
-    "slug": "predictfutbolia"
+    "slug": "predictfutbolia",
+    "web": {
+      "bundler": "metro"
+    }
   }
 }

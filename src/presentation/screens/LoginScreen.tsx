@@ -6,12 +6,12 @@ import {
   TextInput,
   StyleSheet,
   Pressable,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth } from '../../config/firebaseConfig';
 
 interface LoginScreenProps {
   onBack: () => void;
@@ -37,45 +37,73 @@ export default function LoginScreen({
   const handleLogin = async () => {
     setErrorMessage('');
 
-    if (!email.trim() || !password) {
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanEmail || !password) {
       setErrorMessage('Por favor, completa todos los campos.');
       return;
     }
 
+    if (loading) return;
+
     try {
       setLoading(true);
 
-      // Usuario de demostración
-      const isDemoUser =
-        email.trim().toLowerCase() === 'estudiante@clase.com' &&
-        password === '1234';
-
-      if (isDemoUser) {
-        onLoginSuccess('Estudiante');
-        return;
-      }
-
-      // Consultar usuarios registrados
-      const storedUsers = await AsyncStorage.getItem('predictia_users');
-      const users = storedUsers ? JSON.parse(storedUsers) : [];
-
-      const userFound = users.find(
-        (user: { name: string; email: string; password: string }) =>
-          user.email.toLowerCase() === email.trim().toLowerCase() &&
-          user.password === password
+      // Validar las credenciales con Firebase
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        cleanEmail,
+        password
       );
 
-      if (userFound) {
-        onLoginSuccess(userFound.name);
-      } else {
-        setErrorMessage(
-          'Correo o contraseña incorrectos. Verifica tus datos e inténtalo nuevamente.'
-        );
+      // Obtener el nombre registrado en Firebase
+      const userName =
+        userCredential.user.displayName ||
+        userCredential.user.email?.split('@')[0] ||
+        'Usuario';
+
+      onLoginSuccess(userName);
+
+    } catch (error: any) {
+      console.error('Error al iniciar sesión:', error);
+
+      let message =
+        'No fue posible iniciar sesión. Intenta nuevamente.';
+
+      switch (error.code) {
+        case 'auth/invalid-credential':
+        case 'auth/wrong-password':
+        case 'auth/user-not-found':
+          message =
+            'Correo o contraseña incorrectos. Verifica tus datos.';
+          break;
+
+        case 'auth/invalid-email':
+          message = 'Ingresa un correo electrónico válido.';
+          break;
+
+        case 'auth/user-disabled':
+          message = 'Esta cuenta ha sido deshabilitada.';
+          break;
+
+        case 'auth/too-many-requests':
+          message =
+            'Demasiados intentos. Espera un momento e inténtalo nuevamente.';
+          break;
+
+        case 'auth/network-request-failed':
+          message =
+            'No hay conexión. Verifica tu conexión a internet.';
+          break;
+
+        case 'auth/operation-not-allowed':
+          message =
+            'El inicio de sesión por correo no está habilitado en Firebase.';
+          break;
       }
-    } catch {
-      setErrorMessage(
-        'No fue posible validar tus datos. Intenta nuevamente.'
-      );
+
+      setErrorMessage(message);
+
     } finally {
       setLoading(false);
     }
@@ -108,7 +136,7 @@ export default function LoginScreen({
           <TextInput
             style={[
               styles.input,
-              errorMessage && styles.inputError,
+              errorMessage !== '' && styles.inputError,
             ]}
             placeholder="correo@ejemplo.com"
             placeholderTextColor="#78827B"
@@ -119,6 +147,7 @@ export default function LoginScreen({
             }}
             keyboardType="email-address"
             autoCapitalize="none"
+            autoCorrect={false}
           />
 
           <Text style={styles.label}>CONTRASEÑA</Text>
@@ -126,7 +155,7 @@ export default function LoginScreen({
           <View
             style={[
               styles.passwordContainer,
-              errorMessage && styles.inputError,
+              errorMessage !== '' && styles.inputError,
             ]}
           >
             <TextInput
@@ -139,16 +168,18 @@ export default function LoginScreen({
                 setErrorMessage('');
               }}
               secureTextEntry={!showPassword}
+              autoCapitalize="none"
             />
 
-            <Pressable onPress={() => setShowPassword(!showPassword)}>
+            <Pressable
+              onPress={() => setShowPassword(!showPassword)}
+            >
               <Text style={styles.showPassword}>
                 {showPassword ? 'OCULTAR' : 'VER'}
               </Text>
             </Pressable>
           </View>
 
-          {/* Mensaje de error */}
           {errorMessage !== '' && (
             <View style={styles.errorContainer}>
               <Text style={styles.errorIcon}>!</Text>
@@ -177,7 +208,9 @@ export default function LoginScreen({
             </Text>
 
             <Pressable onPress={onRegister}>
-              <Text style={styles.registerLink}>Crear una cuenta</Text>
+              <Text style={styles.registerLink}>
+                Crear una cuenta
+              </Text>
             </Pressable>
           </View>
         </View>

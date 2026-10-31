@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 import {
   ActivityIndicator,
@@ -11,6 +11,9 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+
+import { onAuthStateChanged, signOut } from 'firebase/auth';
+import { auth } from './src/config/firebaseConfig';
 
 import SplashScreen from './src/presentation/screens/SplashScreen';
 import LoginScreen from './src/presentation/screens/LoginScreen';
@@ -52,20 +55,14 @@ export default function App() {
   const [isTournamentLoading, setIsTournamentLoading] =
     useState(false);
 
+  const [isCheckingSession, setIsCheckingSession] =
+    useState(true);
+
   const [tournamentViewModel] = useState(
     () => new TournamentViewModel()
   );
 
-  const handleRegisterSuccess = (
-    email: string,
-    password: string
-  ) => {
-    setInitialEmail(email);
-    setInitialPassword(password);
-    setCurrentScreen('login');
-  };
-
-  // Iniciar sesión y recuperar el torneo guardado.
+  // Recuperar torneo guardado después de autenticar al usuario.
   const handleLoginSuccess = async (name: string) => {
     setUserName(name);
     setInitialEmail('');
@@ -78,6 +75,8 @@ export default function App() {
 
       setTournament(savedTournament);
     } catch (error) {
+      console.error('Error recuperando torneo:', error);
+
       Alert.alert(
         'Recuperación del torneo',
         error instanceof Error
@@ -86,16 +85,58 @@ export default function App() {
       );
     } finally {
       setIsTournamentLoading(false);
+      setIsCheckingSession(false);
       setCurrentScreen('home');
     }
   };
 
-  // Cerrar sesión sin eliminar el torneo guardado.
-  const handleLogout = () => {
-    setUserName('');
+  // Firebase controla automáticamente el estado de autenticación.
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const name =
+          user.displayName ||
+          user.email?.split('@')[0] ||
+          'Usuario';
+
+        await handleLoginSuccess(name);
+      } else {
+        setUserName('');
+        setTournament(null);
+        setCurrentScreen('splash');
+        setIsCheckingSession(false);
+      }
+    });
+
+    return unsubscribe;
+  }, []);
+
+  // Recibir el nombre completo enviado desde RegisterScreen.
+  const handleRegisterSuccess = (
+    _email: string,
+    _password: string,
+    name: string
+  ) => {
+    setUserName(name);
     setInitialEmail('');
     setInitialPassword('');
-    setCurrentScreen('login');
+  };
+
+  // Cerrar sesión en Firebase sin eliminar el torneo guardado.
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+
+      setInitialEmail('');
+      setInitialPassword('');
+    } catch (error) {
+      console.error('Error al cerrar sesión:', error);
+
+      Alert.alert(
+        'Error',
+        'No fue posible cerrar la sesión. Intenta nuevamente.'
+      );
+    }
   };
 
   // Crear un torneo desde la fase seleccionada.
@@ -226,6 +267,19 @@ export default function App() {
     );
   };
 
+  // Mostrar carga mientras Firebase recupera la sesión.
+  if (isCheckingSession) {
+    return (
+      <View style={styles.sessionLoading}>
+        <ActivityIndicator size="large" color="#B9F66A" />
+
+        <Text style={styles.sessionLoadingText}>
+          VERIFICANDO SESIÓN...
+        </Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
@@ -249,7 +303,7 @@ export default function App() {
         <LoginScreen
           onBack={() => setCurrentScreen('splash')}
           onRegister={() => setCurrentScreen('register')}
-          onLoginSuccess={handleLoginSuccess}
+          onLoginSuccess={() => {}}
           initialEmail={initialEmail}
           initialPassword={initialPassword}
         />
@@ -344,15 +398,11 @@ export default function App() {
             <ActivityIndicator size="large" color="#B9F66A" />
 
             <Text style={styles.loadingTitle}>
-              {currentScreen === 'login'
-                ? 'RECUPERANDO TORNEO'
-                : 'PROCESANDO TORNEO'}
+              PROCESANDO TORNEO
             </Text>
 
             <Text style={styles.loadingDescription}>
-              {currentScreen === 'login'
-                ? 'Consultando los resultados guardados...'
-                : 'Procesando la información del torneo...'}
+              Consultando y procesando la información guardada...
             </Text>
           </View>
         </View>
@@ -365,6 +415,19 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#101914',
+  },
+  sessionLoading: {
+    flex: 1,
+    backgroundColor: '#101914',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 18,
+  },
+  sessionLoadingText: {
+    color: '#B9F66A',
+    fontSize: 12,
+    fontWeight: '900',
+    letterSpacing: 1.5,
   },
   screenContainer: {
     flex: 1,

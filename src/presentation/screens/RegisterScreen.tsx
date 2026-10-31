@@ -1,5 +1,6 @@
 
 import React, { useState } from 'react';
+
 import {
   View,
   Text,
@@ -11,11 +12,21 @@ import {
   Alert,
   ScrollView,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+
+import {
+  createUserWithEmailAndPassword,
+  updateProfile,
+} from 'firebase/auth';
+
+import { auth } from '../../config/firebaseConfig';
 
 interface RegisterScreenProps {
   onBack: () => void;
-  onRegisterSuccess: (email: string, password: string) => void;
+  onRegisterSuccess: (
+    email: string,
+    password: string,
+    name: string
+  ) => void;
 }
 
 export default function RegisterScreen({
@@ -26,57 +37,108 @@ export default function RegisterScreen({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleRegister = async () => {
-    if (!name.trim() || !email.trim() || !password || !confirmPassword) {
-      Alert.alert('Campos incompletos', 'Por favor, completa todos los campos.');
+    const cleanName = name.trim();
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanName || !cleanEmail || !password || !confirmPassword) {
+      Alert.alert(
+        'Campos incompletos',
+        'Por favor, completa todos los campos.'
+      );
       return;
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
-      Alert.alert('Correo inválido', 'Ingresa un correo electrónico válido.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      Alert.alert(
+        'Correo inválido',
+        'Ingresa un correo electrónico válido.'
+      );
       return;
     }
 
-    if (password.length < 4) {
-      Alert.alert('Contraseña débil', 'La contraseña debe tener mínimo 4 caracteres.');
+    if (password.length < 6) {
+      Alert.alert(
+        'Contraseña débil',
+        'La contraseña debe tener mínimo 6 caracteres.'
+      );
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Error', 'Las contraseñas no coinciden.');
+      Alert.alert(
+        'Error',
+        'Las contraseñas no coinciden.'
+      );
       return;
     }
 
-    try {
-      const storedUsers = await AsyncStorage.getItem('predictia_users');
-      const users = storedUsers ? JSON.parse(storedUsers) : [];
+    if (loading) return;
 
-      const existingUser = users.find(
-        (user: { email: string }) =>
-          user.email.toLowerCase() === email.trim().toLowerCase()
+    try {
+      setLoading(true);
+
+      // Crear el usuario en Firebase Authentication.
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        cleanEmail,
+        password
       );
 
-      if (existingUser) {
-        Alert.alert('Cuenta existente', 'Este correo ya está registrado.');
-        return;
+      // Guardar el nombre completo en el perfil de Firebase.
+      await updateProfile(userCredential.user, {
+        displayName: cleanName,
+      });
+
+      // Enviar el nombre al componente principal.
+      onRegisterSuccess(
+        cleanEmail,
+        password,
+        cleanName
+      );
+
+      Alert.alert(
+        'Registro exitoso',
+        'Tu cuenta ha sido creada correctamente.'
+      );
+
+    } catch (error: any) {
+      console.error('Error en el registro:', error);
+
+      let message = 'No fue posible crear la cuenta. Intenta nuevamente.';
+
+      switch (error.code) {
+        case 'auth/email-already-in-use':
+          message = 'Este correo electrónico ya está registrado.';
+          break;
+
+        case 'auth/invalid-email':
+          message = 'El correo electrónico no tiene un formato válido.';
+          break;
+
+        case 'auth/weak-password':
+          message = 'La contraseña es demasiado débil.';
+          break;
+
+        case 'auth/network-request-failed':
+          message = 'No hay conexión. Verifica tu conexión a internet.';
+          break;
+
+        case 'auth/operation-not-allowed':
+          message = 'El registro por correo y contraseña no está habilitado en Firebase.';
+          break;
+
+        case 'auth/too-many-requests':
+          message = 'Se han realizado demasiados intentos. Intenta más tarde.';
+          break;
       }
 
-      const newUser = {
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        password,
-      };
+      Alert.alert('Error de registro', message);
 
-      await AsyncStorage.setItem(
-        'predictia_users',
-        JSON.stringify([...users, newUser])
-      );
-
-      Alert.alert('Registro exitoso', 'Tu cuenta ha sido creada.');
-      onRegisterSuccess(newUser.email, newUser.password);
-    } catch {
-      Alert.alert('Error', 'No fue posible crear la cuenta. Intenta nuevamente.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -92,21 +154,25 @@ export default function RegisterScreen({
 
         <Text style={styles.brand}>PREDICTIA</Text>
         <Text style={styles.title}>Crea tu cuenta.</Text>
+
         <Text style={styles.subtitle}>
           Regístrate para comenzar a explorar el fútbol desde los datos.
         </Text>
 
         <View style={styles.form}>
           <Text style={styles.label}>NOMBRE COMPLETO</Text>
+
           <TextInput
             style={styles.input}
             placeholder="Tu nombre"
             placeholderTextColor="#78827B"
             value={name}
             onChangeText={setName}
+            autoCapitalize="words"
           />
 
           <Text style={styles.label}>CORREO ELECTRÓNICO</Text>
+
           <TextInput
             style={styles.input}
             placeholder="correo@ejemplo.com"
@@ -115,12 +181,14 @@ export default function RegisterScreen({
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
+            autoCorrect={false}
           />
 
           <Text style={styles.label}>CONTRASEÑA</Text>
+
           <TextInput
             style={styles.input}
-            placeholder="Mínimo 4 caracteres"
+            placeholder="Mínimo 6 caracteres"
             placeholderTextColor="#78827B"
             value={password}
             onChangeText={setPassword}
@@ -128,6 +196,7 @@ export default function RegisterScreen({
           />
 
           <Text style={styles.label}>CONFIRMAR CONTRASEÑA</Text>
+
           <TextInput
             style={styles.input}
             placeholder="Repite tu contraseña"
@@ -137,8 +206,17 @@ export default function RegisterScreen({
             secureTextEntry
           />
 
-          <Pressable style={styles.registerButton} onPress={handleRegister}>
-            <Text style={styles.registerButtonText}>CREAR CUENTA →</Text>
+          <Pressable
+            style={[
+              styles.registerButton,
+              loading && styles.disabledButton,
+            ]}
+            onPress={handleRegister}
+            disabled={loading}
+          >
+            <Text style={styles.registerButtonText}>
+              {loading ? 'CREANDO CUENTA...' : 'CREAR CUENTA →'}
+            </Text>
           </Pressable>
         </View>
 
@@ -214,6 +292,9 @@ const styles = StyleSheet.create({
     padding: 17,
     alignItems: 'center',
     marginTop: 20,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
   registerButtonText: {
     color: '#101914',

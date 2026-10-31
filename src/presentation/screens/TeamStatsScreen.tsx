@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -13,6 +13,12 @@ import {
 
 import { FootballViewModel } from '../viewmodels/FootballViewModel';
 import { TeamStats } from '../../domain/TeamStats';
+import { Match } from '../../domain/Match';
+import { isNationalTeam } from '../../core/nationalTeams';
+import {
+  getTeamDisplayName,
+  teamMatchesSearch,
+} from '../../core/teamTranslations';
 
 interface TeamStatsScreenProps {
   onBack: () => void;
@@ -24,19 +30,111 @@ export default function TeamStatsScreen({
   const [teamOne, setTeamOne] = useState('Colombia');
   const [teamTwo, setTeamTwo] = useState('Argentina');
 
+  const [availableTeams, setAvailableTeams] = useState<string[]>([]);
+  const [activeTeamIndex, setActiveTeamIndex] = useState<number | null>(null);
+  const [searchText, setSearchText] = useState('');
+
   const [statsOne, setStatsOne] = useState<TeamStats | null>(null);
   const [statsTwo, setStatsTwo] = useState<TeamStats | null>(null);
 
   const [loading, setLoading] = useState(false);
+  const [loadingTeams, setLoadingTeams] = useState(true);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    const loadAvailableTeams = async () => {
+      try {
+        const viewModel = new FootballViewModel();
+        const matches: Match[] = await viewModel.loadMatches();
+
+        const uniqueTeams = new Map<string, string>();
+
+        matches.forEach((match) => {
+          [match.homeTeam, match.awayTeam].forEach((team) => {
+            if (team && isNationalTeam(team)) {
+              const key = team.trim().toLowerCase();
+
+              if (!uniqueTeams.has(key)) {
+                uniqueTeams.set(key, team.trim());
+              }
+            }
+          });
+        });
+
+        const sortedTeams = Array.from(uniqueTeams.values()).sort(
+          (a, b) =>
+            getTeamDisplayName(a).localeCompare(
+              getTeamDisplayName(b),
+              'es'
+            )
+        );
+
+        setAvailableTeams(sortedTeams);
+      } catch (err) {
+        setError(
+          err instanceof Error
+            ? err.message
+            : 'No fue posible cargar las selecciones.'
+        );
+      } finally {
+        setLoadingTeams(false);
+      }
+    };
+
+    loadAvailableTeams();
+  }, []);
+
+  const selectedTeams = [teamOne, teamTwo];
+
+  const filteredTeams = useMemo(() => {
+    const otherSelectedTeam =
+      activeTeamIndex === 0 ? teamTwo : teamOne;
+
+    return availableTeams
+      .filter((team) => {
+        const isAlreadySelected =
+          team.toLowerCase() === otherSelectedTeam.toLowerCase();
+
+        return (
+          !isAlreadySelected &&
+          (!searchText.trim() ||
+            teamMatchesSearch(team, searchText.trim()))
+        );
+      })
+      .slice(0, 12);
+  }, [availableTeams, searchText, activeTeamIndex, teamOne, teamTwo]);
+
+  const openTeamSelector = (index: number) => {
+    setActiveTeamIndex(index);
+    setSearchText('');
+    setError('');
+  };
+
+  const closeTeamSelector = () => {
+    setActiveTeamIndex(null);
+    setSearchText('');
+  };
+
+  const selectTeam = (team: string) => {
+    if (activeTeamIndex === 0) {
+      setTeamOne(team);
+    } else if (activeTeamIndex === 1) {
+      setTeamTwo(team);
+    }
+
+    setStatsOne(null);
+    setStatsTwo(null);
+    setError('');
+    closeTeamSelector();
+  };
+
   const handleCompare = async () => {
-    if (!teamOne.trim() || !teamTwo.trim()) {
-      setError('Debes escribir el nombre de los dos equipos.');
+    if (!teamOne || !teamTwo) {
+      setError('Debes seleccionar los dos equipos.');
       return;
     }
 
-    if (teamOne.trim().toLowerCase() === teamTwo.trim().toLowerCase()) {
+    if (teamOne.toLowerCase() === teamTwo.toLowerCase()) {
       setError('Debes seleccionar dos equipos diferentes.');
       return;
     }
@@ -50,8 +148,8 @@ export default function TeamStatsScreen({
       const viewModel = new FootballViewModel();
 
       const [resultOne, resultTwo] = await Promise.all([
-        viewModel.getTeamStats(teamOne.trim()),
-        viewModel.getTeamStats(teamTwo.trim()),
+        viewModel.getTeamStats(teamOne),
+        viewModel.getTeamStats(teamTwo),
       ]);
 
       setStatsOne(resultOne);
@@ -67,9 +165,37 @@ export default function TeamStatsScreen({
     }
   };
 
+  const renderTeamSelector = (
+    label: string,
+    team: string,
+    index: number
+  ) => (
+    <View style={styles.selectorContainer}>
+      <Text style={styles.inputLabel}>{label}</Text>
+
+      <Pressable
+        style={styles.selectorButton}
+        onPress={() => openTeamSelector(index)}
+      >
+        <View style={styles.selectorTextContainer}>
+          <Text style={styles.selectedTeamName}>
+            {team ? getTeamDisplayName(team) : 'Seleccionar selección'}
+          </Text>
+          <Text style={styles.selectorHint}>
+            {team ? 'Selección seleccionada' : 'Elige un equipo'}
+          </Text>
+        </View>
+
+        <Text style={styles.selectorArrow}>⌄</Text>
+      </Pressable>
+    </View>
+  );
+
   const renderStats = (stats: TeamStats) => (
     <View style={styles.statsCard}>
-      <Text style={styles.teamName}>{stats.team}</Text>
+      <Text style={styles.teamName}>
+        {getTeamDisplayName(stats.team)}
+      </Text>
 
       <View style={styles.statsGrid}>
         <View style={styles.statItem}>
@@ -135,7 +261,10 @@ export default function TeamStatsScreen({
     <View style={styles.container}>
       <StatusBar barStyle="light-content" />
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+      >
         <Text style={styles.brand}>PREDICTIA</Text>
 
         <Text style={styles.subtitle}>ANÁLISIS DE DATOS</Text>
@@ -143,47 +272,93 @@ export default function TeamStatsScreen({
         <Text style={styles.title}>Comparar equipos</Text>
 
         <Text style={styles.description}>
-          Consulta las estadísticas históricas de dos selecciones
+          Consulta y compara las estadísticas históricas de dos selecciones
           utilizando los resultados almacenados en nuestra fuente de datos.
         </Text>
 
         <View style={styles.inputCard}>
-          <Text style={styles.inputLabel}>PRIMER EQUIPO</Text>
+          {loadingTeams ? (
+            <View style={styles.loadingTeamsContainer}>
+              <ActivityIndicator color="#B9F66A" />
+              <Text style={styles.loadingTeamsText}>
+                Cargando selecciones disponibles...
+              </Text>
+            </View>
+          ) : (
+            <>
+              {renderTeamSelector('PRIMER EQUIPO', teamOne, 0)}
 
-          <TextInput
-            style={styles.input}
-            value={teamOne}
-            onChangeText={setTeamOne}
-            placeholder="Ejemplo: Colombia"
-            placeholderTextColor="#77857B"
-            autoCapitalize="words"
-          />
+              {renderTeamSelector('SEGUNDO EQUIPO', teamTwo, 1)}
 
-          <Text style={styles.inputLabel}>SEGUNDO EQUIPO</Text>
+              <Pressable
+                style={[
+                  styles.compareButton,
+                  (loading || !availableTeams.length) &&
+                    styles.disabledButton,
+                ]}
+                onPress={handleCompare}
+                disabled={loading || !availableTeams.length}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#101914" />
+                ) : (
+                  <Text style={styles.compareButtonText}>
+                    CONSULTAR ESTADÍSTICAS →
+                  </Text>
+                )}
+              </Pressable>
+            </>
+          )}
+        </View>
 
-          <TextInput
-            style={styles.input}
-            value={teamTwo}
-            onChangeText={setTeamTwo}
-            placeholder="Ejemplo: Argentina"
-            placeholderTextColor="#77857B"
-            autoCapitalize="words"
-          />
+        {activeTeamIndex !== null && (
+          <View style={styles.dropdownCard}>
+            <View style={styles.dropdownHeader}>
+              <Text style={styles.dropdownTitle}>
+                {activeTeamIndex === 0
+                  ? 'Seleccionar primer equipo'
+                  : 'Seleccionar segundo equipo'}
+              </Text>
 
-          <Pressable
-            style={[styles.compareButton, loading && styles.disabledButton]}
-            onPress={handleCompare}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#101914" />
+              <Pressable onPress={closeTeamSelector}>
+                <Text style={styles.closeButton}>✕</Text>
+              </Pressable>
+            </View>
+
+            <TextInput
+              style={styles.searchInput}
+              value={searchText}
+              onChangeText={setSearchText}
+              placeholder="Buscar selección..."
+              placeholderTextColor="#77857B"
+              autoCapitalize="words"
+              autoFocus
+            />
+
+            {filteredTeams.length > 0 ? (
+              filteredTeams.map((team) => (
+                <Pressable
+                  key={team}
+                  style={styles.teamOption}
+                  onPress={() => selectTeam(team)}
+                >
+                  <Text style={styles.teamOptionName}>
+                    {getTeamDisplayName(team)}
+                  </Text>
+                  <Text style={styles.teamOptionArrow}>›</Text>
+                </Pressable>
+              ))
             ) : (
-              <Text style={styles.compareButtonText}>
-                CONSULTAR ESTADÍSTICAS →
+              <Text style={styles.emptyResults}>
+                No se encontraron selecciones.
               </Text>
             )}
-          </Pressable>
-        </View>
+
+            <Text style={styles.dropdownFooter}>
+              Se muestran máximo 12 resultados.
+            </Text>
+          </View>
+        )}
 
         {error !== '' && (
           <View style={styles.errorCard}>
@@ -196,7 +371,6 @@ export default function TeamStatsScreen({
             <Text style={styles.sectionTitle}>Resultados del análisis</Text>
 
             {renderStats(statsOne)}
-
             {renderStats(statsTwo)}
 
             <View style={styles.noteCard}>
@@ -257,6 +431,9 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 18,
   },
+  selectorContainer: {
+    marginBottom: 12,
+  },
   inputLabel: {
     color: '#B9F66A',
     fontSize: 11,
@@ -265,14 +442,33 @@ const styles = StyleSheet.create({
     marginBottom: 9,
     marginTop: 12,
   },
-  input: {
+  selectorButton: {
     backgroundColor: '#101914',
-    color: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#344438',
     borderRadius: 10,
     padding: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  selectorTextContainer: {
+    flex: 1,
+  },
+  selectedTeamName: {
+    color: '#FFFFFF',
     fontSize: 15,
+    fontWeight: '700',
+  },
+  selectorHint: {
+    color: '#77857B',
+    fontSize: 10,
+    marginTop: 5,
+  },
+  selectorArrow: {
+    color: '#B9F66A',
+    fontSize: 24,
+    marginLeft: 10,
   },
   compareButton: {
     backgroundColor: '#B9F66A',
@@ -289,6 +485,79 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     fontSize: 12,
     letterSpacing: 1,
+  },
+  loadingTeamsContainer: {
+    alignItems: 'center',
+    padding: 25,
+  },
+  loadingTeamsText: {
+    color: '#A4AEA7',
+    fontSize: 12,
+    marginTop: 12,
+  },
+  dropdownCard: {
+    backgroundColor: '#1B2920',
+    padding: 17,
+    borderRadius: 15,
+    marginTop: 15,
+    borderWidth: 1,
+    borderColor: '#344438',
+  },
+  dropdownHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  dropdownTitle: {
+    color: '#B9F66A',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  closeButton: {
+    color: '#A4AEA7',
+    fontSize: 18,
+    paddingHorizontal: 5,
+  },
+  searchInput: {
+    backgroundColor: '#101914',
+    color: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#344438',
+    borderRadius: 10,
+    padding: 13,
+    fontSize: 14,
+    marginBottom: 10,
+  },
+  teamOption: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 13,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#344438',
+  },
+  teamOptionName: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  teamOptionArrow: {
+    color: '#B9F66A',
+    fontSize: 21,
+  },
+  emptyResults: {
+    color: '#A4AEA7',
+    fontSize: 12,
+    textAlign: 'center',
+    padding: 18,
+  },
+  dropdownFooter: {
+    color: '#77857B',
+    fontSize: 10,
+    textAlign: 'center',
+    marginTop: 12,
   },
   errorCard: {
     backgroundColor: '#351D20',

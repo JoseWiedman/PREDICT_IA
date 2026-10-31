@@ -1,0 +1,1 @@
+export { auth, app } from './firebaseConfig.native';
